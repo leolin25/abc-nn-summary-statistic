@@ -2,6 +2,12 @@ from random import seed
 
 import numpy as np
 
+def sde_simulation():
+    """
+    Simulates a stochastic differential equation (SDE) 
+    """
+    return 
+
 def simulate_markov(transition_matrix, initial_state, num_steps):
     """
     Simulates a Markov chain given a transition matrix, an initial state and the number of steps to simulate
