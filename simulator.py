@@ -2,29 +2,37 @@ from random import seed
 import numpy as np
 import matplotlib.pyplot as plt
 
-def sde_simulation(h: float, T: float, mu:float, sigma:float, x0: float) -> np.ndarray:
+def ou_simulation(h: float, T: float, mu:float, sigma:float, tau:float, x0: float) -> tuple[np.ndarray, np.ndarray]:
     """
-    Simulates a stochastic differential equation (SDE) using Euler-Maruyama method
+    Simulates an Ornstein-Uhlenbeck process using Euler-Maruyama method
     """
     n_steps = int(T / h)
     t = np.linspace(0, T, n_steps + 1)
-    x = np.zeros(n_steps + 1)
-    x[0] = 0  # initial condition
+    X = np.zeros(n_steps + 1)
+    X[0] = x0 # initial condition
 
     for i in range(n_steps):
-        W = np.random.normal(0, np.sqrt(h))  # Brownian motion increment
-        x[i + 1] = x[i] + mu * h + sigma * W
+        drift = (1 / tau) * (mu - X[i]) * h
+        diffusion = sigma * np.sqrt(h) * np.random.normal(0, 1)
+        X[i+1] = X[i] + drift + diffusion
 
-    return x
+    return X, t
 
 # set a seed for reproducibility
 np.random.seed(42)
 
-# example execution
 h = 0.01 # step size
-T = 1.0 # total time
+T = 10.0 # total time
 mu, sigma = 0.1, 0.2 # drift and diffusion coefficients
+tau = 0.5 # mean reversion speed
 x0 = 0.0 # initial condition
 
-simulated_sequence = sde_simulation(h, T, mu, sigma, x0)
-print(simulated_sequence)
+simulated_sequence, t = ou_simulation(h, T, mu, sigma, tau, x0)
+
+# create a plot of the simulated Ornstein-Uhlenbeck process
+plt.figure(figsize=(10, 7))
+plt.plot(t, simulated_sequence)
+plt.title('Ornstein-Uhlenbeck Process Simulation')
+plt.xlabel('Time')
+plt.ylabel('X(t)')
+plt.show()
