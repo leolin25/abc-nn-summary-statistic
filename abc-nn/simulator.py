@@ -1,44 +1,38 @@
 from random import seed
-
 import numpy as np
+import matplotlib.pyplot as plt
 
-def simulate_markov(transition_matrix, initial_state, num_steps):
+def ou_simulation(h: float, T: float, mu:float, sigma:float, tau:float, x0: float) -> tuple[np.ndarray, np.ndarray]:
     """
-    Simulates a Markov chain given a transition matrix, an initial state and the number of steps to simulate
-    params:
-        transition_matrix: A square matrix representing the transition probabilities between states
-        initial_state: The initial state of the Markov chain
-        num_steps: The number of steps to simulate
-    returns:
-        np.ndarray: An array of states visited during the simulation
+    Simulates an Ornstein-Uhlenbeck process using Euler-Maruyama method
     """
-    num_states = transition_matrix.shape[0]
+    n_steps = int(T / h)
+    t = np.linspace(0, T, n_steps + 1)
+    X = np.zeros(n_steps + 1)
+    X[0] = x0 # initial condition
 
-    # allocate sequence array
-    sequence = np.zeros(num_steps, dtype=int)
-    sequence[0] = initial_state
+    for i in range(n_steps):
+        drift = (1 / tau) * (mu - X[i]) * h
+        diffusion = sigma * np.sqrt(h) * np.random.normal(0, 1)
+        X[i+1] = X[i] + drift + diffusion
 
-    # states the markov chain can go
-    state_choices = np.arange(num_states)
-    current_state = initial_state
-
-    for i in range(1, num_steps):
-        probabilities = transition_matrix[current_state]
-
-        next_state = np.random.choice(state_choices, p=probabilities)
-
-        sequence[i] = next_state
-        current_state = next_state
-
-    return sequence
+    return X, t
 
 # set a seed for reproducibility
 np.random.seed(42)
 
-# example execution
-P = np.array([[0.2, 0.7, 0.1], [0.2, 0.3, 0.5], [0.1, 0.6, 0.3]])
-init_state = 0
-num_steps = 10
+h = 0.01 # step size
+T = 10.0 # total time
+mu, sigma = 0.1, 0.2 # drift and diffusion coefficients
+tau = 0.5 # mean reversion speed
+x0 = 0.0 # initial condition
 
-simulated_sequence = simulate_markov(P, init_state, num_steps)
-print(simulated_sequence)
+simulated_sequence, t = ou_simulation(h, T, mu, sigma, tau, x0)
+
+# create a plot of the simulated Ornstein-Uhlenbeck process
+plt.figure(figsize=(10, 7))
+plt.plot(t, simulated_sequence)
+plt.title('Ornstein-Uhlenbeck Process Simulation')
+plt.xlabel('Time')
+plt.ylabel('X(t)')
+plt.show()
