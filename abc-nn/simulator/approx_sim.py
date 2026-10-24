@@ -2,9 +2,18 @@ from random import seed
 import numpy as np
 import matplotlib.pyplot as plt
 
-def ou_simulation(h: float, T: float, mu:float, sigma:float, tau:float, x0: float) -> tuple[np.ndarray, np.ndarray]:
+def ou_eu(h: float, T: float, mu:float, sigma:float, tau:float, x0: float) -> tuple[np.ndarray, np.ndarray]:
     """
     Simulates an Ornstein-Uhlenbeck process using Euler-Maruyama method
+    Args:
+        h (float): step size
+        T (float): total time
+        mu (float): drift coefficient
+        sigma (float): diffusion coefficient
+        tau (float): mean reversion speed
+        x0 (float): initial condition
+    Returns:
+        tuple[np.ndarray, np.ndarray]: simulated sequence and time points
     """
     n_steps = int(T / h)
     t = np.linspace(0, T, n_steps + 1)
@@ -27,7 +36,7 @@ mu, sigma = 0.1, 0.2 # drift and diffusion coefficients
 tau = 0.5 # mean reversion speed
 x0 = 0.0 # initial condition
 
-simulated_sequence, t = ou_simulation(h, T, mu, sigma, tau, x0)
+simulated_sequence, t = ou_eu(h, T, mu, sigma, tau, x0)
 
 # create a plot of the simulated Ornstein-Uhlenbeck process
 plt.figure(figsize=(10, 7))
