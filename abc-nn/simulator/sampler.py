@@ -35,6 +35,21 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
             - obssummaries (torch.Tensor): The neural network's evolving summary statistic representation of the observed data.
             - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
     """
+
+    def _summarise(x: np.ndarray) -> np.ndarray:
+        """
+        Function to summarise a given trajectory
+        Args:
+            x (np.ndarray): simulated trajectory data
+        Returns:
+            np.ndarray: The extracted summary statistics.
+        """
+        # for current implementation we will use canonical summary statistics
+        mean = np.mean(x)
+        var = np.var(x)
+        
+        return np.array([mean, var])
+
     # Placeholder for the actual implementation of the ABC-SMC algorithm
     # This function would include the logic for simulating data, training the neural network,
     # calculating distances, and updating particles and weights based on acceptance criteria.
