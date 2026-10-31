@@ -1,16 +1,7 @@
 import numpy as np
 import scipy.stats as stats
-
-def sample_prior(): 
-    """
-    Sample from the prior distribution for the parameters of the Ornstein-Uhlenbeck process. 
-    Returns:
-        A numpy array containing the sampled parameters (mu, sigma, tau)
-    """
-    prior_mu = stats.uniform(loc=0, scale=1).rvs() # Uniform distribution between 0.0 and 1.0
-    prior_sigma = stats.uniform(loc=0.1, scale=0.5).rvs()  # Uniform distribution between 0.1 and 0.6
-    prior_tau = stats.uniform(loc=0.1, scale=0.9).rvs()  # Uniform distribution between 0.1 and 1.0
-    return np.array([prior_mu, prior_sigma, prior_tau])
+from functools import partial
+from utilities import sample_prior
 
 def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, n_part: int, max_iter: int, init_size: int, q: float):
     """
@@ -50,8 +41,37 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         
         return np.array([mean, var])
 
-    # Placeholder for the actual implementation of the ABC-SMC algorithm
-    # This function would include the logic for simulating data, training the neural network,
-    # calculating distances, and updating particles and weights based on acceptance criteria.
-    pass
-    
+    num_sum_stats = 2  # number of summary statistics (mean and variance)
+
+    # particle system, covariance matrix and thresholds
+    param_dim = len(prior_bounds)
+    abc_particles = np.zeros((max_iter, n_part, param_dim))
+    abc_weights = np.zeros((max_iter, n_part))
+    abc_cov = np.zeros((param_dim, param_dim))
+    abc_thresholds = np.zeros(max_iter)
+
+    obssummaries = np.zeros((max_iter, num_sum_stats))
+
+    # initialize abc-smc
+    abc_thresholds[0] = np.inf
+    abc_weights[0] = np.log(1 / n_part) # uniform weights for this round
+    obssummaries[0] = _summarise(obs)
+
+    # run abc-smc loop
+    for t in range(max_iter):
+        print(f'Round {t+1}')
+
+        # instantiate prior density
+        if t == 0:
+            proposal = partial(sample_prior, prior_bounds=prior_bounds)
+        else:
+            proposal = partial(
+                gaussian_proposal,
+                abc_particles[t - 1],
+                abc_weights[t - 1],
+                np.linalg.cholesky(abc_cov),
+                prior_bounds,
+            )
+
+    return None
+
