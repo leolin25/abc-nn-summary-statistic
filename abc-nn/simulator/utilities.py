@@ -16,7 +16,7 @@ def sample_prior(prior_bounds: np.ndarray) -> np.ndarray:
 
     return theta
 
-def gaussian_proposal(particles: np.ndarray, cov: np.ndarray) -> np.ndarray:
+def gaussian_proposal(particles: np.ndarray, weights:np.ndarray, chol:np.ndarray, prior_bounds: np.ndarray) -> np.ndarray:
     """
     Randomly pick a particle and perturb it by a Gaussian
 
@@ -25,7 +25,6 @@ def gaussian_proposal(particles: np.ndarray, cov: np.ndarray) -> np.ndarray:
         weights (np.ndarray): Weights of particles.
         chol (np.ndarray): Cholesky decomposition of a covariance matrix.
         prior_bounds (np.ndarray): Array of prior bounds.
-
     Returns:
         np.ndarray: Parameter proposal.
     """

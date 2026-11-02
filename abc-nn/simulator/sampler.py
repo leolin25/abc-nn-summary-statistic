@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 from functools import partial
-from utilities import sample_prior
+from utilities import sample_prior, gaussian_proposal
 
 def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, n_part: int, max_iter: int, init_size: int, q: float):
     """
@@ -72,6 +72,8 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
                 np.linalg.cholesky(abc_cov),
                 prior_bounds,
             )
+
+    
 
     return None
 
