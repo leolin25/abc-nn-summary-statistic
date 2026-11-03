@@ -1,7 +1,13 @@
+import time
 import numpy as np
 import scipy.stats as stats
+from tqdm import tqdm
 from functools import partial
-from utilities import sample_prior, gaussian_proposal
+from utilities import (
+    sample_prior,
+    gaussian_proposal,
+    compute_param_ratio
+)
 
 def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, n_part: int, max_iter: int, init_size: int, q: float):
     """
@@ -73,7 +79,41 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
                 prior_bounds,
             )
 
-    
+    total_sim = 0
+    round_start = time.time()
+    distances = np.zeros(n_part)
 
+    # iterate until we have n_part accepted particles
+    for i in tqdm(range(n_part)):
+        while True:
+            # sample and simulate
+            particle = proposal()
+            path = simulator(particle)
+
+            # reject numerical error
+            if np.any(np.isnan(path)) or np.any(path >= 10e7):
+                continue
+
+            total_sim += 1
+
+            # summarise and calculate distance between observed ss and simulated ss
+            sim_summary = _summarise(path)
+            dist = np.linalg.norm(obssummaries[t] - sim_summary)
+
+            if dist <= abc_thresholds[t]:
+                abc_particles[t, i] = particle
+                distances[i] = dist
+                break
+
+    # compute weights
+    if t > 0:
+        compute_param_ratio(
+                t=t,
+                prior_bounds=prior_bounds,
+                particles=abc_particles,
+                weights=abc_weights,
+                cov_det=np.linalg.det(abc_cov),
+                cov_inv=np.linalg.inv(abc_cov),
+            )
+        
     return None
-
