@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def sample_prior(prior_bounds: np.ndarray) -> np.ndarray: 
     """
@@ -40,3 +41,37 @@ def gaussian_proposal(particles: np.ndarray, weights:np.ndarray, chol:np.ndarray
                 break
         if flag:
             return theta
+
+def compute_param_ratio(t: int, prior_bounds: np.ndarray, particles: np.ndarray, weights: np.ndarray, cov_det: np.ndarray, cov_inv: np.ndarray) -> float:
+    """
+    Compute the ratio of the prior and proosal distribtion for all particles at once
+
+    Args:
+        t (int): Round id.
+        prior_bounds (np.ndarray): Bounds of the uniform prior distribution.
+        particles (np.ndarray): Parameter values.
+        weights (np.ndarray): Parameter weights.
+        cov_det (np.ndarray): Determinant of the ABC-SMC covariance.
+        cov_inv (np.ndarray): Inverse of the ABC-SMC covariance.
+    """
+    M, d = particles[t].shape
+
+    # Product of uniform priors
+    prior_prob = 1
+    for j in range(d):
+        diff = abs(prior_bounds[j, 1] - prior_bounds[j, 0])
+        prior_prob *= 1 / diff
+    logprior_prob = np.log(prior_prob)
+
+    # GM prob
+    for i in range(M):
+        proposal_prob = 0
+        for j in range(M):
+            kernel_weight = mvnorm_pdf(
+                particles[t, i],
+                particles[t - 1, j],
+                cov_det,
+                cov_inv,
+            )
+            proposal_prob += kernel_weight * weights[t - 1, j]
+        weights[t, i] = logprior_prob - np.log(proposal_prob)
