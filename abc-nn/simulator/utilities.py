@@ -75,3 +75,14 @@ def compute_param_ratio(t: int, prior_bounds: np.ndarray, particles: np.ndarray,
             )
             proposal_prob += kernel_weight * weights[t - 1, j]
         weights[t, i] = logprior_prob - np.log(proposal_prob)
+
+    def logsumexp(x: np.ndarray) -> float:
+        """
+        Computes the log of the sum of exponentials of input elements.
+            Args:
+                x: Array of logs.
+            Returns:
+                Logarithm of the summed logs.
+        """
+        c = x.max()
+        return c + np.log(np.sum(np.exp(x - c)))
