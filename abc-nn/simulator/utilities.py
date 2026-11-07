@@ -1,6 +1,18 @@
 import numpy as np
 import math
 
+def random_choice(w: np.ndarray):
+    """
+    Random choice of an index based on the weights.
+
+    Args:
+        w (np.ndarray): Array of weights
+
+    Returns:
+        np.int: Sampled index.
+    """
+    return np.searchsorted(np.cumsum(w), np.random.random())
+
 def sample_prior(prior_bounds: np.ndarray) -> np.ndarray: 
     """
     Sample from the prior distribution 
@@ -76,13 +88,31 @@ def compute_param_ratio(t: int, prior_bounds: np.ndarray, particles: np.ndarray,
             proposal_prob += kernel_weight * weights[t - 1, j]
         weights[t, i] = logprior_prob - np.log(proposal_prob)
 
-    def logsumexp(x: np.ndarray) -> float:
-        """
-        Computes the log of the sum of exponentials of input elements.
-            Args:
-                x: Array of logs.
-            Returns:
-                Logarithm of the summed logs.
-        """
-        c = x.max()
-        return c + np.log(np.sum(np.exp(x - c)))
+def logsumexp(x: np.ndarray) -> float:
+    """
+    Computes the log of the sum of exponentials of input elements.
+        Args:
+            x: Array of logs.
+        Returns:
+            Logarithm of the summed logs.
+    """
+    c = x.max()
+    return c + np.log(np.sum(np.exp(x - c)))
+
+def mvnorm_pdf(x: np.ndarray, mu: np.ndarray, cov_det: np.ndarray, cov_inv: np.ndarray):
+    """Hardcoded pdf of the multivarite Gaussian.
+    The determinant and the inverse of the covariance are
+    precomputed for efficiency.
+
+    Args:
+        x (np.ndarray): Parameter value
+        mu (np.ndarray): Mean
+        cov_det (np.float): Determinant of the covariance
+        cov_inv (np.ndarray): Inverse of covariance.
+
+    Returns:
+        np.float: PDF evaluated in x.
+    """
+    d = len(x)
+
+    return math.exp(-(1 / 2) * (x - mu) @ cov_inv @ (x - mu)) / math.sqrt((2 * math.pi) ** d * cov_det)

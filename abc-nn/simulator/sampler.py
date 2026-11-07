@@ -3,12 +3,14 @@ import numpy as np
 import scipy.stats as stats
 from tqdm import tqdm
 from functools import partial
-from utilities import (
+from .utilities import (
     sample_prior,
     gaussian_proposal,
     compute_param_ratio,
     logsumexp
 )
+
+# What dimensions should the summary statistics be? Model-based and canonical
 
 def canonical_summary(x: np.ndarray) -> np.ndarray:
         """
@@ -158,7 +160,8 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         print(f"Acceptance rate is {round(acceptance_rate, 2)}%")
 
         if t > 2 and acceptance_rate < 1.5:
-            print(f"Acceptance rate below 1.5%, terminating ABC-SMC loop, round {t}")
+            print(f"Acceptance rate below 1.5%, terminating ABC-SMC loop")
+            break
 
         print(f"Saving inference results up to round {t + 1}.")
 
@@ -171,3 +174,6 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         obs_summaries[: t+1],
         abc_thresholds[: t+1],
     )
+
+
+abc_smc = abcsmc_forward
