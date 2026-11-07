@@ -39,7 +39,7 @@ def canonical_summary(x: np.ndarray) -> np.ndarray:
     return np.array([mean, var])
     """
 
-def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, summarise: callable, n_part: int, max_iter: int, init_size: int, q: float):
+def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, summarise: callable, n_part: int, max_iter: int, q: float):
     """
     Perform Approximate Bayesian Computation with Sequential Monte Carlo (ABC-SMC) loop.
 
@@ -51,7 +51,6 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         summarise (function): a function that summarises a trajectory into summary statistics
         n_part (int): number of particles to use in the ABC-SMC algorithm
         max_iter (int): maximum number of iterations for the ABC-SMC algorithm
-        init_size (int): initial size of the neural network training dataset
         q (float): quantile for the ABC-SMC algorithm
     Returns:
         tuple: A tuple containing the following arrays up to the final completed round (t+1):
