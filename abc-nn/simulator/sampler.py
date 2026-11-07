@@ -23,18 +23,19 @@ def canonical_summary(x: np.ndarray) -> np.ndarray:
         
         return np.array([mean, var])
 
-def model_summary(x: np.ndarray) -> np.ndarray:
-    """
+# def model_summary(x: np.ndarray) -> np.ndarray:
+"""
     Function to return model-based summary statistics
     Args:
         x (np.ndarray): simulated trajectory data
     Returns:
         np.ndarray: The extracted summary statistics.
-    """
+    
     mean = np.mean(x)
     var = np.var(x)
     
     return np.array([mean, var])
+    """
 
 def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, summarise: callable, n_part: int, max_iter: int, init_size: int, q: float):
     """
@@ -57,7 +58,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
             - abc_round_time (np.ndarray): The computation time (in seconds) spent simulating and sampling per round.
             - training_time (np.ndarray): The computation time (in seconds) spent training the neural network.
             - acc_rates (np.ndarray): The percentage of proposed simulations accepted in each round.
-            - obssummaries (torch.Tensor): The neural network's evolving summary statistic representation of the observed data.
+            - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
             - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
     """
     num_sum_stats = 2  # number of summary statistics (mean and variance)
@@ -71,12 +72,12 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
     abc_cov = np.zeros((param_dim, param_dim))
     abc_thresholds = np.zeros(max_iter)
 
-    obssummaries = np.zeros((max_iter, num_sum_stats))
+    obs_summaries = np.zeros((max_iter, num_sum_stats))
 
     # initialize abc-smc
     abc_thresholds[0] = np.inf
     abc_weights[0] = np.log(1 / n_part) # uniform weights for this round
-    obssummaries[0] = summarise(obs)
+    obs_summaries[0] = summarise(obs)
 
     # run abc-smc loop
     for t in range(max_iter):
@@ -113,7 +114,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
 
                 # summarise and calculate distance between observed ss and simulated ss
                 sim_summary = summarise(path)
-                dist = np.linalg.norm(obssummaries[t] - sim_summary)
+                dist = np.linalg.norm(obs_summaries[t] - sim_summary)
 
                 if dist <= abc_thresholds[t]:
                     abc_particles[t, i] = particle
@@ -167,6 +168,6 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         abc_weights[: t+1],
         abc_round_time[: t+1],
         acc_rate[: t+1],
-        obssummaries[: t+1],
+        obs_summaries[: t+1],
         abc_thresholds[: t+1],
     )
