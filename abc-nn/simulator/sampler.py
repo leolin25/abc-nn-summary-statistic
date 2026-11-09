@@ -154,7 +154,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         else:
             abc_thresholds[t + 1] = abc_thresholds[t] * 0.95
 
-        print(f"The threshold for this round was {round(abc_thresholds[t], 2)}")
+        print(f"The threshold for this round was {abc_thresholds[t]}")
         print(f"Acceptance rate is {round(acceptance_rate, 2)}%")
 
         if t > 2 and acceptance_rate < 1.5:
