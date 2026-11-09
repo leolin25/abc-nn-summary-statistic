@@ -37,29 +37,30 @@ def ou_exact(h: float, T: float, mu: float, sigma: float, tau: float, x0: float,
     
     return X, t
 
-# set a seed for reproducibility
-np.random.seed(42)
+if __name__ == "__main__":
+    # set a seed for reproducibility
+    np.random.seed(42)
 
-h = 0.01 # step size
-T = 10.0 # total time
-mu, sigma = 0.1, 0.2 # drift and diffusion coefficients
-tau = 0.5 # mean reversion speed
-x0 = 0.0 # initial condition
-n_paths = 50 # number of trajectories
+    h = 0.01 # step size
+    T = 10.0 # total time
+    mu, sigma = 0.1, 0.2 # drift and diffusion coefficients
+    tau = 0.5 # mean reversion speed
+    x0 = 0.0 # initial condition
+    n_paths = 50 # number of trajectories
 
-simulated_sequences, t = ou_exact(h, T, mu, sigma, tau, x0, n_paths)
+    simulated_sequences, t = ou_exact(h, T, mu, sigma, tau, x0, n_paths)
 
-# create a plot of the simulated Ornstein-Uhlenbeck process
-plt.figure(figsize=(12, 7))
+    # create a plot of the simulated Ornstein-Uhlenbeck process
+    plt.figure(figsize=(12, 7))
 
-# Plot all paths with low opacity so we can see the density distribution
-plt.plot(t, simulated_sequences, color='green', alpha=0.5, linewidth=0.5)
+    # Plot all paths with low opacity so we can see the density distribution
+    plt.plot(t, simulated_sequences, color='green', alpha=0.5, linewidth=0.5)
 
-# Plot the theoretical mean as a dashed line for reference
-plt.axhline(mu, color='black', linestyle='--', linewidth=2, label='Long-term Mean ($\mu$)')
+    # Plot the theoretical mean as a dashed line for reference
+    plt.axhline(mu, color='black', linestyle='--', linewidth=2, label='Long-term Mean ($\mu$)')
 
-plt.title(f'{n_paths} Exact Simulations of an Ornstein-Uhlenbeck Process')
-plt.xlabel('Time')
-plt.ylabel('X(t)')
-plt.legend()
-plt.show()
+    plt.title(f'{n_paths} Exact Simulations of an Ornstein-Uhlenbeck Process')
+    plt.xlabel('Time')
+    plt.ylabel('X(t)')
+    plt.legend()
+    plt.show()

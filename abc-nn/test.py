@@ -28,8 +28,21 @@ results = abc_smc(
     summarise=canonical_summary,
     n_part=1000,
     max_iter=5,
-    init_size=100,
     q=0.1
 )
-
-print(results)
+"""
+tuple: A tuple containing the following arrays up to the final completed round (t+1):
+            - abc_particles (np.ndarray): The accepted parameter vectors forming the posterior.
+            - abc_weights (np.ndarray): The calculated Sequential Monte Carlo importance weights.
+            - abc_round_time (np.ndarray): The computation time (in seconds) spent simulating and sampling per round.
+            - acc_rates (np.ndarray): The percentage of proposed simulations accepted in each round.
+            - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
+            - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
+"""
+print('Final ABC-SMC results:')
+print('Particles: ', results[0])
+print('Weights: ', results[1])
+print('Round times: ', results[2])
+print('Acceptance rates: ', results[3])
+print('Observed summaries: ', results[4])
+print('ABC thresholds: ', results[5])

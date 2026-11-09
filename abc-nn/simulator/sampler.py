@@ -57,7 +57,6 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
             - abc_particles (np.ndarray): The accepted parameter vectors forming the posterior.
             - abc_weights (np.ndarray): The calculated Sequential Monte Carlo importance weights.
             - abc_round_time (np.ndarray): The computation time (in seconds) spent simulating and sampling per round.
-            - training_time (np.ndarray): The computation time (in seconds) spent training the neural network.
             - acc_rates (np.ndarray): The percentage of proposed simulations accepted in each round.
             - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
             - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
