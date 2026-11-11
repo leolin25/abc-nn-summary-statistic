@@ -35,7 +35,7 @@ prior_particles = np.random.uniform(
     size=(n_samples, len(prior_bounds))
 )
 
-# 2. Simulate trajectories for each sampled particle vector
+# simulate trajectories for each sampled particle vector
 calibration_paths = np.array([simulate_ou(particle) for particle in prior_particles])
 
 # initialize canonical sum stats

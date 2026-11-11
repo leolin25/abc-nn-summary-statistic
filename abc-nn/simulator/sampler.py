@@ -33,7 +33,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
             - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
             - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
     """
-    num_sum_stats = summarise.get_num_sum_stats()
+    num_sum_stats = summarise.num_sum_stats
     abc_round_time = np.zeros(max_iter)
     acc_rate = np.zeros(max_iter)
 
@@ -54,6 +54,9 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
     # run abc-smc loop
     for t in range(max_iter):
         print(f'Round {t+1}')
+        s_obs = summarise(obs)
+        obs_summaries[t] = s_obs
+        print(f'Observed summary statistics: {s_obs}')
 
         # instantiate prior density
         if t == 0:

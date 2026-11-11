@@ -9,9 +9,6 @@ class BaseSummary():
     def __init__(self):
         self.num_sum_stats = None
 
-    def get_num_sum_stats(self):
-        return self.num_sum_stats
-
     @abstractmethod
     def fit(self, data: np.ndarray):
         pass
