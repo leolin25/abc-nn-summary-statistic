@@ -32,6 +32,8 @@ class CanonicalSummary(BaseSummary):
         self.fitted = False
 
     def _extract_raw(self, data: np.ndarray) -> np.ndarray:
+        data = np.asarray(data).ravel()
+
         # extract the raw summary statistics
         mean_val = np.mean(data)
         var_val = np.var(data)
