@@ -1,8 +1,8 @@
-from simulator.sampler import (
-    abc_smc,
-    canonical_summary
-)
+from simulator.sampler import abcsmc_forward
 from simulator.exact_sim import ou_exact
+from simulator.sum_statistics import BaseSummary, CanonicalSummary, ModelSummary, NeuralSummary
+from simulator.utilities import sample_prior
+from functools import partial
 import numpy as np
 
 # simulate an Ornstein-Uhlenbeck process to generate observed data
@@ -21,11 +21,32 @@ def simulate_ou(particle):
     )[0]
     return trajectory.flatten()
 
-results = abc_smc(
+# sample 1000 particles from prior to fit summary statistic
+prior_bounds = np.array([[0.0, 0.2], [0.1, 0.3], [0.4, 0.6]])
+n_samples = 1000
+
+# prior_bounds shape: (3, 2) where row 0 is mu, row 1 is sigma, row 2 is tau
+low_bounds = prior_bounds[:, 0]
+high_bounds = prior_bounds[:, 1]
+
+prior_particles = np.random.uniform(
+    low=low_bounds, 
+    high=high_bounds, 
+    size=(n_samples, len(prior_bounds))
+)
+
+# 2. Simulate trajectories for each sampled particle vector
+calibration_paths = np.array([simulate_ou(particle) for particle in prior_particles])
+
+# initialize canonical sum stats
+summarise = CanonicalSummary()
+summarise.fit(np.array([calibration_paths]))
+
+results = abcsmc_forward(
     obs=obs,
-    prior_bounds=np.array([[0.0, 0.2], [0.1, 0.3], [0.4, 0.6]]),
+    prior_bounds=prior_bounds,
     simulator=simulate_ou,
-    summarise=canonical_summary,
+    summarise=summarise,
     n_part=1000,
     max_iter=5,
     q=0.1

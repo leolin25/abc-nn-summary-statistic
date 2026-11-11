@@ -9,37 +9,9 @@ from .utilities import (
     compute_param_ratio,
     logsumexp
 )
+from .sum_statistics import BaseSummary, CanonicalSummary, ModelSummary, NeuralSummary
 
-# What dimensions should the summary statistics be? Model-based and canonical
-
-def canonical_summary(x: np.ndarray) -> np.ndarray:
-        """
-        Function to return canonical summary statistics
-        Args:
-            x (np.ndarray): simulated trajectory data
-        Returns:
-            np.ndarray: The extracted summary statistics.
-        """
-        mean = np.mean(x)
-        var = np.var(x)
-        
-        return np.array([mean, var])
-
-# def model_summary(x: np.ndarray) -> np.ndarray:
-"""
-    Function to return model-based summary statistics
-    Args:
-        x (np.ndarray): simulated trajectory data
-    Returns:
-        np.ndarray: The extracted summary statistics.
-    
-    mean = np.mean(x)
-    var = np.var(x)
-    
-    return np.array([mean, var])
-    """
-
-def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, summarise: callable, n_part: int, max_iter: int, q: float):
+def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, summarise: BaseSummary, n_part: int, max_iter: int, q: float):
     """
     Perform Approximate Bayesian Computation with Sequential Monte Carlo (ABC-SMC) loop.
 
@@ -48,7 +20,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         obs (np.ndarray): observed data time-series data
         prior_bounds (np.ndarray): bounds for the prior distribution of the parameters
         simulator (function): a function that simulates a time-series
-        summarise (function): a function that summarises a trajectory into summary statistics
+        summarise (Object): an instance of a summary statistic class
         n_part (int): number of particles to use in the ABC-SMC algorithm
         max_iter (int): maximum number of iterations for the ABC-SMC algorithm
         q (float): quantile for the ABC-SMC algorithm
@@ -61,7 +33,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
             - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
             - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
     """
-    num_sum_stats = 2  # number of summary statistics (mean and variance)
+    num_sum_stats = summarise.get_num_sum_stats()
     abc_round_time = np.zeros(max_iter)
     acc_rate = np.zeros(max_iter)
 

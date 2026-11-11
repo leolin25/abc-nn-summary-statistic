@@ -1,4 +1,4 @@
-from .sampler import abc_smc, abcsmc_forward, canonical_summary
+from .sampler import abcsmc_forward
 from .exact_sim import ou_exact
 
-__all__ = ["abc_smc", "abcsmc_forward", "canonical_summary", "ou_exact"]
+__all__ = ["abcsmc_forward", "ou_exact"]
