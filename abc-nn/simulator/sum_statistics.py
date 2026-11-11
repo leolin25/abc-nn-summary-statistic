@@ -52,13 +52,14 @@ class CanonicalSummary(BaseSummary):
     def fit(self, data:np.ndarray):
         # input n_part of trajectories
         raw_stats_batch = np.array([self._extract_raw(traj) for traj in data])
+        print('Raw summary statistics shape: ', raw_stats_batch.shape)
 
         # compute medians and MADs
         self.medians = np.median(raw_stats_batch, axis=0)
-        self.mads = np.median(np.abs(raw_stats_batch - self.medians), axis=0)
+        raw_mads = np.median(np.abs(raw_stats_batch - self.medians), axis=0)
 
         # prevent division by zero in case of zero MAD
-        self.mads[self.mads < 1e-6] = 1.0
+        self.mads = np.where(raw_mads < 1e-6, 1.0, raw_mads)
         self.fitted = True
 
         return self
@@ -81,6 +82,10 @@ class ModelSummary(BaseSummary):
     def __init__(self):
         super().__init__()
         self.num_sum_stats = 2
+
+    def fit(self, data: np.ndarray):
+        # calculate invariant density and spectral density ratios
+        return self
 
 class NeuralSummary(BaseSummary):
     """

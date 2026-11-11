@@ -40,7 +40,11 @@ calibration_paths = np.array([simulate_ou(particle) for particle in prior_partic
 
 # initialize canonical sum stats
 summarise = CanonicalSummary()
-summarise.fit(np.array([calibration_paths]))
+summarise.fit(calibration_paths)
+
+if isinstance(summarise, CanonicalSummary):
+    print('Fitted summary statistic medians: ', summarise.medians)
+    print('Fitted summary statistic MADs: ', summarise.mads)
 
 results = abcsmc_forward(
     obs=obs,
