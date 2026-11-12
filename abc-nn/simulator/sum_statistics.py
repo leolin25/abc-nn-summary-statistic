@@ -49,7 +49,6 @@ class CanonicalSummary(BaseSummary):
     def fit(self, data:np.ndarray):
         # input n_part of trajectories
         raw_stats_batch = np.array([self._extract_raw(traj) for traj in data])
-        print('Raw summary statistics shape: ', raw_stats_batch.shape)
 
         # compute medians and MADs
         self.medians = np.median(raw_stats_batch, axis=0)
@@ -71,7 +70,7 @@ class CanonicalSummary(BaseSummary):
             return normalized_stats
 
         return raw_stats
-
+    
 class ModelSummary(BaseSummary):
     """
     Invariant density and spectral density of the SDE
@@ -79,10 +78,39 @@ class ModelSummary(BaseSummary):
     def __init__(self):
         super().__init__()
         self.num_sum_stats = 2
+        self.weight = None
+        self.fitted = False
 
     def fit(self, data: np.ndarray):
         # calculate invariant density and spectral density ratios
+        # input n_part of trajectories
+        raw_stats_batch = np.array([self._extract_raw(traj) for traj in data])
+
+        # compute median of IAE invariant density
+        median_IAE_invariant = 
+        median_IAE_spectral = 
+
+        # calculate weighting
+        self.weight = median_IAE_invariant / median_IAE_spectral
+        self.fitted = True
+        
         return self
+
+    def _extract_raw(self, data: np.ndarray) -> np.ndarray:
+        # returns integrated absolute error of invariant density and spectral density
+        IAE_invariant_d = 
+        IAE_spectral_d = 
+        
+        return np.array([IAE_invariant_d, IAE_spectral_d])
+
+    def __call__(self, data: np.ndarray) -> np.ndarray:
+        # single trajectory input
+        raw_stats = self._extract_raw(data)
+
+        if self.fitted:
+            return np.array([raw_stats[0], raw_stats[1] * self.weight])
+
+        return raw_stats
 
 class NeuralSummary(BaseSummary):
     """
