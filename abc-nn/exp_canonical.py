@@ -50,6 +50,7 @@ if isinstance(summarise, CanonicalSummary):
     print('Fitted summary statistic medians: ', summarise.medians)
     print('Fitted summary statistic MADs: ', summarise.mads)
 
+# start the abc
 results = abcsmc_forward(
     obs=obs,
     prior_bounds=prior_bounds,
@@ -59,6 +60,8 @@ results = abcsmc_forward(
     max_iter=5,
     q=0.1
 )
+
+# print results
 """
 tuple: A tuple containing the following arrays up to the final completed round (t+1):
             - abc_particles (np.ndarray): The accepted parameter vectors forming the posterior.
@@ -69,9 +72,79 @@ tuple: A tuple containing the following arrays up to the final completed round (
             - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
 """
 print('Final ABC-SMC results:')
-print('Particles: ', results[0])
 print('Weights: ', results[1])
 print('Round times: ', results[2])
 print('Acceptance rates: ', results[3])
 print('Observed summaries: ', results[4])
 print('ABC thresholds: ', results[5])
+
+# true params and the labels latex
+true_params = np.array([0.1, 0.2, 0.5])
+param_names = [r'$\mu$', r'$\sigma$', r'$\tau$']
+
+# extract particles and importance weight from last round
+final_particles = results[0][-1]
+final_weights = results[1][-1]
+final_weights = final_weights / np.sum(final_weights)
+
+# resample according to the weights to get the weighted posterior
+resampled_indices = np.random.choice(
+    len(final_particles), size=10000, replace=True, p=final_weights
+)
+posterior_samples = final_particles[resampled_indices]
+
+# Create box plot
+fig, ax = plt.subplots(figsize=(8, 5))
+
+bp = ax.boxplot(
+    posterior_samples,
+    tick_labels=param_names,
+    patch_artist=True,
+    widths=0.45,
+    boxprops=dict(facecolor='#4C72B0', alpha=0.65),
+    medianprops=dict(color='black', linewidth=1.5),
+    flierprops=dict(marker='o', markersize=2, alpha=0.25),
+)
+
+# overlay prior bounds interval for reference
+for i in range(len(param_names)):
+    ax.vlines(
+        i + 1,
+        prior_bounds[i, 0],
+        prior_bounds[i, 1],
+        color='gray',
+        linestyle='--',
+        linewidth=1.5,
+        alpha=0.7,
+        label='Prior Bounds' if i == 0 else "",
+    )
+    ax.hlines(
+        [prior_bounds[i, 0], prior_bounds[i, 1]],
+        i + 1 - 0.12,
+        i + 1 + 0.12,
+        color='gray',
+        linewidth=1.5,
+        alpha=0.7,
+    )
+
+# Overlay true observed parameter values
+ax.scatter(
+    range(1, len(param_names) + 1),
+    true_params,
+    color='#D62728',
+    zorder=5,
+    s=75,
+    marker='D',
+    label='True Parameter Value',
+)
+
+ax.set_title('ABC-SMC Posterior Parameter Distributions')
+ax.set_ylabel('Parameter Value')
+ax.grid(axis='y', linestyle='--', alpha=0.4)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.legend(loc='upper left')
+
+plt.tight_layout()
+plt.savefig('abcsmc_posterior_parameters.png', dpi=300)
+plt.show()
