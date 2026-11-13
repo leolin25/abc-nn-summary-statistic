@@ -1,9 +1,12 @@
-from simulator.sampler import abcsmc_forward
-from simulator.exact_sim import ou_exact
+from simulator import abcsmc_forward, ou_exact
 from simulator.sum_statistics import BaseSummary, CanonicalSummary, ModelSummary, NeuralSummary
 from simulator.utilities import sample_prior
 from functools import partial
 import numpy as np
+
+"""
+This file is for experimenting the ABC-SMC loop with model-based summary statistics.
+"""
 
 # simulate an Ornstein-Uhlenbeck process to generate observed data
 obs = ou_exact(h=0.01, T=10.0, mu=0.1, sigma=0.2, tau=0.5, x0=0.0, n_paths=1)[0].flatten()

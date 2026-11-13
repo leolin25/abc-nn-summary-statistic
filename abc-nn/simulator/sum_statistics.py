@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.stats import gaussian_kde
+from scipy.integrate import trapezoid
 from statsmodels.tsa.stattools import acf
 from abc import abstractmethod
 
@@ -75,7 +77,7 @@ class ModelSummary(BaseSummary):
     """
     Invariant density and spectral density of the SDE
     """
-    def __init__(self):
+    def __init__(self, obs):
         super().__init__()
         self.num_sum_stats = 2
         self.weight = None
@@ -87,19 +89,19 @@ class ModelSummary(BaseSummary):
         raw_stats_batch = np.array([self._extract_raw(traj) for traj in data])
 
         # compute median of IAE invariant density
-        median_IAE_invariant = 
-        median_IAE_spectral = 
+        #median_IAE_invariant = 
+        #median_IAE_spectral = 
 
         # calculate weighting
-        self.weight = median_IAE_invariant / median_IAE_spectral
+        #self.weight = median_IAE_invariant / median_IAE_spectral
         self.fitted = True
         
         return self
 
     def _extract_raw(self, data: np.ndarray) -> np.ndarray:
         # returns integrated absolute error of invariant density and spectral density
-        IAE_invariant_d = 
-        IAE_spectral_d = 
+        #IAE_invariant_d = 
+        #IAE_spectral_d = 
         
         return np.array([IAE_invariant_d, IAE_spectral_d])
 
