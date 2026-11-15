@@ -41,13 +41,14 @@ prior_particles = np.random.uniform(
 # simulate trajectories for each sampled particle vector
 calibration_paths = np.array([simulate_ou(particle) for particle in prior_particles])
 
-# initialize canonical sum stats
-summarise = CanonicalSummary()
+# initialize model sum stats
+summarise = ModelSummary(obs=obs, dt=0.01)
 summarise.fit(calibration_paths)
 
-if isinstance(summarise, CanonicalSummary):
-    print('Fitted summary statistic medians: ', summarise.medians)
-    print('Fitted summary statistic MADs: ', summarise.mads)
+# print diagonostic data
+print('Fitted IAE balancing weight: ', summarise.weight)
+print('Observed summary check: ', summarise(obs))
+
 
 results = abcsmc_forward(
     obs=obs,

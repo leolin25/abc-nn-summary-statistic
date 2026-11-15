@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.stats import gaussian_kde
-from scipy.integrate import trapezoid
 from statsmodels.tsa.stattools import acf
 from abc import abstractmethod
+from scipy import integrate, signal, stats
 
 class BaseSummary():
     """
@@ -31,6 +31,7 @@ class CanonicalSummary(BaseSummary):
         self.fitted = False
 
     def _extract_raw(self, data: np.ndarray) -> np.ndarray:
+        # take a single trajectory
         data = np.asarray(data).ravel()
 
         # extract the raw summary statistics
@@ -77,42 +78,92 @@ class ModelSummary(BaseSummary):
     """
     Invariant density and spectral density of the SDE
     """
-    def __init__(self, obs):
+    def __init__(self, obs: np.ndarray, dt: float, n_grid: int=500, nperseg: int=256):
         super().__init__()
         self.num_sum_stats = 2
         self.weight = None
         self.fitted = False
 
+        self.obs = np.asarray(obs).ravel()
+        self.dt = dt
+        self.fs = 1.0 / dt
+        self.n_grid = n_grid
+        self.nperseg = min(len(self.obs), nperseg)
+
+        # Precompute observed invariant density (KDE) and spectral density (Welch PSD)
+        pad = 4.0 * np.std(self.obs)
+        self.x_grid = np.linspace(
+            np.min(self.obs) - pad, np.max(self.obs) + pad, self.n_grid
+        )
+        self.obs_invariant_density = stats.gaussian_kde(self.obs)(self.x_grid)
+        self.freqs, self.obs_spectral_density = signal.welch(
+            self.obs, fs=self.fs, nperseg=self.nperseg, scaling="density"
+        )
+
+    def _extract_raw(self, data: np.ndarray, obs: np.ndarray = None, dt: float = None) -> np.ndarray:
+        data_1d = np.asarray(data).ravel()
+
+        if obs is not None:
+            obs_1d = np.asarray(obs).ravel()
+            fs = 1.0 / (dt if dt is not None else self.dt)
+            nperseg = min(len(obs_1d), len(data_1d), self.nperseg)
+            pad = 4.0 * np.std(obs_1d)
+            x_grid = np.linspace(
+                np.min(obs_1d) - pad, np.max(obs_1d) + pad, self.n_grid
+            )
+            obs_invariant_density = stats.gaussian_kde(obs_1d)(x_grid)
+            freqs, obs_spectral_density = signal.welch(
+                obs_1d, fs=fs, nperseg=nperseg, scaling="density"
+            )
+        else:
+            fs = self.fs
+            nperseg = self.nperseg
+            x_grid = self.x_grid
+            obs_invariant_density = self.obs_invariant_density
+            freqs = self.freqs
+            obs_spectral_density = self.obs_spectral_density
+
+        if np.std(data_1d) < 1e-8 or len(data_1d) < nperseg:
+            return np.array([2.0, 1e6], dtype=np.float32)
+
+        try:
+            sim_invariant_density = stats.gaussian_kde(data_1d)(x_grid)
+            IAE_invariant_d = integrate.trapezoid(
+                np.abs(sim_invariant_density - obs_invariant_density), x_grid
+            )
+        except np.linalg.LinAlgError:
+            IAE_invariant_d = 2.0
+
+        _, sim_spectral_density = signal.welch(
+            data_1d, fs=fs, nperseg=nperseg, scaling="density"
+        )
+        IAE_spectral_d = integrate.trapezoid(
+            np.abs(sim_spectral_density - obs_spectral_density), freqs
+        )
+
+        return np.array([IAE_invariant_d, IAE_spectral_d], dtype=np.float32)
+
     def fit(self, data: np.ndarray):
-        # calculate invariant density and spectral density ratios
-        # input n_part of trajectories
         raw_stats_batch = np.array([self._extract_raw(traj) for traj in data])
 
-        # compute median of IAE invariant density
-        #median_IAE_invariant = 
-        #median_IAE_spectral = 
+        median_IAE_invariant = np.median(raw_stats_batch[:, 0])
+        median_IAE_spectral = np.median(raw_stats_batch[:, 1])
 
-        # calculate weighting
-        #self.weight = median_IAE_invariant / median_IAE_spectral
+        self.weight = (
+            median_IAE_invariant / median_IAE_spectral
+            if median_IAE_spectral > 1e-12
+            else 1.0
+        )
         self.fitted = True
-        
         return self
 
-    def _extract_raw(self, data: np.ndarray) -> np.ndarray:
-        # returns integrated absolute error of invariant density and spectral density
-        #IAE_invariant_d = 
-        #IAE_spectral_d = 
-        
-        return np.array([IAE_invariant_d, IAE_spectral_d])
-
     def __call__(self, data: np.ndarray) -> np.ndarray:
-        # single trajectory input
-        raw_stats = self._extract_raw(data)
+        IAE_invariant_d, IAE_spectral_d = self._extract_raw(data)
 
         if self.fitted:
-            return np.array([raw_stats[0], raw_stats[1] * self.weight])
+            return np.array([IAE_invariant_d, IAE_spectral_d * self.weight])
 
-        return raw_stats
+        return np.array([IAE_invariant_d, IAE_spectral_d])
 
 class NeuralSummary(BaseSummary):
     """

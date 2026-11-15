@@ -46,9 +46,9 @@ calibration_paths = np.array([simulate_ou(particle) for particle in prior_partic
 summarise = CanonicalSummary()
 summarise.fit(calibration_paths)
 
-if isinstance(summarise, CanonicalSummary):
-    print('Fitted summary statistic medians: ', summarise.medians)
-    print('Fitted summary statistic MADs: ', summarise.mads)
+# print diagnostic data
+print('Fitted summary statistic medians: ', summarise.medians)
+print('Fitted summary statistic MADs: ', summarise.mads)
 
 # start the abc
 results = abcsmc_forward(
@@ -138,6 +138,7 @@ ax.scatter(
     label='True Parameter Value',
 )
 
+# plot the results
 ax.set_title('ABC-SMC Posterior Parameter Distributions')
 ax.set_ylabel('Parameter Value')
 ax.grid(axis='y', linestyle='--', alpha=0.4)
