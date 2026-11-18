@@ -11,7 +11,7 @@ from .utilities import (
 )
 from .sum_statistics import BaseSummary, CanonicalSummary, ModelSummary, NeuralSummary
 
-def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, summarise: BaseSummary, n_part: int, max_iter: int, q: float):
+def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callable, summarise: BaseSummary, n_part: int, max_iter: int, q: float, max_sims: int):
     """
     Perform Approximate Bayesian Computation with Sequential Monte Carlo (ABC-SMC) loop.
 
@@ -21,9 +21,10 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         prior_bounds (np.ndarray): bounds for the prior distribution of the parameters
         simulator (function): a function that simulates a time-series
         summarise (Object): an instance of a summary statistic class
-        n_part (int): number of particles to use in the ABC-SMC algorithm
-        max_iter (int): maximum number of iterations for the ABC-SMC algorithm
-        q (float): quantile for the ABC-SMC algorithm
+        n_part (int): number of particles to use
+        max_iter (int): maximum number of iterations 
+        q (float): quantile of distances
+        max_sims (int): maximum number of simulations
     Returns:
         tuple: A tuple containing the following arrays up to the final completed round (t+1):
             - abc_particles (np.ndarray): The accepted parameter vectors forming the posterior.
@@ -32,6 +33,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
             - acc_rates (np.ndarray): The percentage of proposed simulations accepted in each round.
             - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
             - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
+            - cum_total_sim (np.ndarray): the cumulative total sims for each round
     """
     num_sum_stats = summarise.num_sum_stats
     abc_round_time = np.zeros(max_iter)
@@ -43,6 +45,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
     abc_weights = np.zeros((max_iter, n_part))
     abc_cov = np.zeros((param_dim, param_dim))
     abc_thresholds = np.zeros(max_iter)
+    cum_total_sim = np.zeros(max_iter)
 
     obs_summaries = np.zeros((max_iter, num_sum_stats))
 
@@ -113,6 +116,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
 
         # total round time
         abc_round_time[t] = time.time() - round_start
+        cum_total_sim[t] = cum_total_sim[t-1] + total_sim
 
         # calculate acceptance rate and stop if below 1.5%
         acceptance_rate = (n_part / total_sim) * 100.0
@@ -146,6 +150,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
         acc_rate[: t+1],
         obs_summaries[: t+1],
         abc_thresholds[: t+1],
+        cum_total_sim[: t+1]
     )
 
 

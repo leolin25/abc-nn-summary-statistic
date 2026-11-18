@@ -2,7 +2,8 @@ import numpy as np
 from scipy.stats import gaussian_kde
 from statsmodels.tsa.stattools import acf
 from abc import abstractmethod
-from scipy import integrate, signal, stats
+from scipy import integrate, signal, stats, ndimage
+from numpy.lib.stride_tricks import sliding_window_view
 
 class BaseSummary():
     """
@@ -21,7 +22,7 @@ class BaseSummary():
 
 class CanonicalSummary(BaseSummary):
     """
-    Canonical summary statistic: mean and variance
+    Normalised canonical summary statistics
     """
     def __init__(self):
         super().__init__()
@@ -76,70 +77,81 @@ class CanonicalSummary(BaseSummary):
     
 class ModelSummary(BaseSummary):
     """
-    Invariant density and spectral density of the SDE
+    IAE of invariant and spectral density with weighting on spectral density to normalise
+    Uses binned KDE which is much faster than gaussian KDE
     """
-    def __init__(self, obs: np.ndarray, dt: float, n_grid: int=500, nperseg: int=256):
+    def __init__(
+        self,
+        obs: np.ndarray,
+        dt: float = 0.01,
+        n_grid: int = 200,
+        nperseg: int = 256,
+    ):
         super().__init__()
         self.num_sum_stats = 2
         self.weight = None
         self.fitted = False
 
-        self.obs = np.asarray(obs).ravel()
+        self.obs = np.asarray(obs, dtype=np.float64).ravel()
         self.dt = dt
         self.fs = 1.0 / dt
         self.n_grid = n_grid
         self.nperseg = min(len(self.obs), nperseg)
 
-        # Precompute observed invariant density (KDE) and spectral density (Welch PSD)
+        # precompute uniform grid and bin edges for fast Binned KDE
         pad = 4.0 * np.std(self.obs)
-        self.x_grid = np.linspace(
-            np.min(self.obs) - pad, np.max(self.obs) + pad, self.n_grid
-        )
-        self.obs_invariant_density = stats.gaussian_kde(self.obs)(self.x_grid)
-        self.freqs, self.obs_spectral_density = signal.welch(
-            self.obs, fs=self.fs, nperseg=self.nperseg, scaling="density"
-        )
+        x_min, x_max = np.min(self.obs) - pad, np.max(self.obs) + pad
+        self.bin_edges = np.linspace(x_min, x_max, self.n_grid + 1)
+        self.dx = self.bin_edges[1] - self.bin_edges[0]
+        self.x_grid = 0.5 * (self.bin_edges[:-1] + self.bin_edges[1:])
 
-    def _extract_raw(self, data: np.ndarray, obs: np.ndarray = None, dt: float = None) -> np.ndarray:
-        data_1d = np.asarray(data).ravel()
+        # recompute Hann window, scaling factor, and df for fast Welch PSD
+        self.step = self.nperseg // 2
+        self.win = np.hanning(self.nperseg)
+        self.psd_scale = 1.0 / (self.fs * np.sum(self.win ** 2))
+        self.df = self.fs / self.nperseg
+        self.freqs = np.fft.rfftfreq(self.nperseg, d=self.dt)
 
-        if obs is not None:
-            obs_1d = np.asarray(obs).ravel()
-            fs = 1.0 / (dt if dt is not None else self.dt)
-            nperseg = min(len(obs_1d), len(data_1d), self.nperseg)
-            pad = 4.0 * np.std(obs_1d)
-            x_grid = np.linspace(
-                np.min(obs_1d) - pad, np.max(obs_1d) + pad, self.n_grid
-            )
-            obs_invariant_density = stats.gaussian_kde(obs_1d)(x_grid)
-            freqs, obs_spectral_density = signal.welch(
-                obs_1d, fs=fs, nperseg=nperseg, scaling="density"
-            )
+        # store observed densities
+        self.obs_invariant_density = self._fast_kde(self.obs)
+        self.obs_spectral_density = self._fast_welch(self.obs)
+
+    def _fast_kde(self, x: np.ndarray) -> np.ndarray:
+        """
+        Evaluates 1D Gaussian KDE on self.x_grid via histogram + Gaussian convolution
+        """
+        n = len(x)
+        bw = np.std(x, ddof=1) * (n ** -0.2)
+        counts, _ = np.histogram(x, bins=self.bin_edges)
+        raw_density = counts / (n * self.dx)
+        return ndimage.gaussian_filter1d(raw_density, sigma=bw / self.dx, mode="constant")
+
+    def _fast_welch(self, x: np.ndarray) -> np.ndarray:
+        segments = sliding_window_view(x, self.nperseg)[:: self.step]
+        segments = (segments - np.mean(segments, axis=1, keepdims=True)) * self.win
+        fft_vals = np.fft.rfft(segments, axis=1)
+        psd = np.mean(np.abs(fft_vals) ** 2, axis=0) * self.psd_scale
+
+        if self.nperseg % 2 == 0:
+            psd[1:-1] *= 2.0
         else:
-            fs = self.fs
-            nperseg = self.nperseg
-            x_grid = self.x_grid
-            obs_invariant_density = self.obs_invariant_density
-            freqs = self.freqs
-            obs_spectral_density = self.obs_spectral_density
+            psd[1:] *= 2.0
+        return psd
 
-        if np.std(data_1d) < 1e-8 or len(data_1d) < nperseg:
+    def _extract_raw(self, data: np.ndarray) -> np.ndarray:
+        """
+        Returns IAE of invariant and spectral densities against the observed densities
+        """
+        data_1d = np.asarray(data, dtype=np.float64).ravel()
+
+        if np.std(data_1d) < 1e-8 or len(data_1d) < self.nperseg:
             return np.array([2.0, 1e6], dtype=np.float32)
 
-        try:
-            sim_invariant_density = stats.gaussian_kde(data_1d)(x_grid)
-            IAE_invariant_d = integrate.trapezoid(
-                np.abs(sim_invariant_density - obs_invariant_density), x_grid
-            )
-        except np.linalg.LinAlgError:
-            IAE_invariant_d = 2.0
+        sim_invariant_density = self._fast_kde(data_1d)
+        IAE_invariant_d = np.sum(np.abs(sim_invariant_density - self.obs_invariant_density)) * self.dx
 
-        _, sim_spectral_density = signal.welch(
-            data_1d, fs=fs, nperseg=nperseg, scaling="density"
-        )
-        IAE_spectral_d = integrate.trapezoid(
-            np.abs(sim_spectral_density - obs_spectral_density), freqs
-        )
+        sim_spectral_density = self._fast_welch(data_1d)
+        IAE_spectral_d = np.sum(np.abs(sim_spectral_density - self.obs_spectral_density)) * self.df
 
         return np.array([IAE_invariant_d, IAE_spectral_d], dtype=np.float32)
 
@@ -161,9 +173,11 @@ class ModelSummary(BaseSummary):
         IAE_invariant_d, IAE_spectral_d = self._extract_raw(data)
 
         if self.fitted:
-            return np.array([IAE_invariant_d, IAE_spectral_d * self.weight])
+            return np.array(
+                [IAE_invariant_d, IAE_spectral_d * self.weight], dtype=np.float32
+            )
 
-        return np.array([IAE_invariant_d, IAE_spectral_d])
+        return np.array([IAE_invariant_d, IAE_spectral_d], dtype=np.float32)
 
 class NeuralSummary(BaseSummary):
     """
