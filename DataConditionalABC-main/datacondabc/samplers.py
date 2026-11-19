@@ -115,8 +115,8 @@ def abcsmc_dataconditional(
         # Setup trainer.
         trainer = pl.Trainer(
             max_epochs=1000,
-            accelerator="gpu" if use_gpu else None,
-            devices=1 if use_gpu else None,
+            accelerator="cuda" if use_gpu else "cpu",
+            devices=1,
             callbacks=[early_stopping, model_checkpoint],
         )
 
@@ -618,8 +618,8 @@ def abcsmc_forward(
         # Setup trainer.
         trainer = pl.Trainer(
             max_epochs=1000,
-            accelerator="gpu" if use_gpu else None,
-            devices=1 if use_gpu else None,
+            accelerator="cuda" if use_gpu else "cpu",
+            devices=1,
             callbacks=[early_stopping, model_checkpoint],
         )
 
@@ -896,6 +896,7 @@ def abcsmc_forward(
         acc_rates[: t + 1],
         obssummaries[: t + 1],
         abc_thresholds[: t + 1],
+        cum_total_sim[: t+1]
     )
 
 

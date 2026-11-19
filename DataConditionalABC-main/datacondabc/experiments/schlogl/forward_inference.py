@@ -18,13 +18,13 @@ from datacondabc.samplers import abcsmc_forward
 from datacondabc.simulators.approxsim import finescale_em
 from datacondabc.models import schlogl
 from datacondabc.nnets import PENCNN
-from datacondabc.simulators.exactsim import ou
+from datacondabc.simulators.exactsim import ou_exact
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 
 def simulate_ou(particle):
     mu, sigma, tau = particle
-    trajectory = ou(
+    trajectory = ou_exact(
         h=0.01,
         T=10.0,
         mu=mu,
@@ -40,7 +40,8 @@ prior_bounds = np.array([[0.0, 0.2], [0.1, 0.3], [0.4, 0.6]])
 
 # load saved obs data
 project_root = Path(__file__).resolve().parents[5]
-obs = np.load(project_root / 'obs_data.npy')
+obs_1d = np.load(project_root / 'obs_data.npy')
+obs = obs_1d.reshape(1, 1, -1)
 
 results = abcsmc_forward(
     obs=obs,

@@ -30,18 +30,18 @@ class PENDataModule(pl.LightningDataModule):
         return DataLoader(
             self.train,
             batch_size=512,
-            num_workers=5,
+            num_workers=0,
             pin_memory=True,
-            persistent_workers=True,
+            persistent_workers=False,
         )
 
     def val_dataloader(self):
         return DataLoader(
             self.validation,
             batch_size=128,
-            num_workers=5,
+            num_workers=0,
             pin_memory=True,
-            persistent_workers=True,
+            persistent_workers=False,
         )
 
 
