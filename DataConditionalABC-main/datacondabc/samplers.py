@@ -545,7 +545,8 @@ def abcsmc_forward(
     init_size: int = 10000,
     amortized: bool = False,
     always_train: bool = True,
-    max_sims: int = 1e+5
+    max_sims: int = 1e+5,
+    ckpt_path: str = None
 ):
 
     param_dim = len(prior_bounds)
@@ -568,7 +569,12 @@ def abcsmc_forward(
             torch.tensor: S(x).
         """
         with torch.no_grad():
-            return net(torch.tensor(x).float())[0]
+            t = torch.tensor(x).float()
+            if t.ndim == 1:
+                t = t.view(1, 1, -1)
+            elif t.ndim == 2:
+                t = t.unsqueeze(0)
+            return net(t)[0]
 
     def _sample_pps(paths, params):
         nsamples = len(paths)
@@ -719,21 +725,35 @@ def abcsmc_forward(
     tsize = int(npart * 0.8)
     vsize = npart - tsize
 
-    # Generate initial training and validation data.
-    print("Generating training and validation data...")
     nn_paths = torch.zeros(init_size + niter * npart, d, obs_len)
     nn_params = torch.zeros(init_size + niter * npart, param_dim)
-    _sample_pps(nn_paths[:init_size], nn_params[:init_size])
 
-    # Train network.
-    net, stop_learning = _train_network(
-        t=-1,
-        train_paths=nn_paths[:init_tsize],
-        train_params=nn_params[:init_tsize],
-        val_paths=nn_paths[init_tsize:init_size],
-        val_params=nn_params[init_tsize:init_size],
-        net=net,
-    )
+    if ckpt_path is not None:
+        print(f"Loading pretrained checkpoint: {ckpt_path}")
+        net = PENCNN.load_from_checkpoint(
+            checkpoint_path=ckpt_path,
+            input_shape=(obs_len, d),
+            output_shape=param_dim,
+            pen_nr=1,
+        )
+        net.eval()
+        net = net.to("cpu")
+        best_model_paths.append(ckpt_path)
+        stop_learning = True
+    else:
+        # Generate initial training and validation data.
+        print("Generating training and validation data...")
+        _sample_pps(nn_paths[:init_size], nn_params[:init_size])
+
+        # Train network.
+        net, stop_learning = _train_network(
+            t=-1,
+            train_paths=nn_paths[:init_tsize],
+            train_params=nn_params[:init_tsize],
+            val_paths=nn_paths[init_tsize:init_size],
+            val_params=nn_params[init_tsize:init_size],
+            net=net,
+        )
 
     # Initialize ABC-SMC.
     abc_thresholds[0] = np.inf
@@ -828,7 +848,7 @@ def abcsmc_forward(
             round(acceptance_rate, 2),
         )
         print(f'Total simulations are {cum_total_sim[t]}')
-        if t > 2 and total_sim > max_sims:
+        if t >= 1 and total_sim > max_sims:
             print("Ending ABC-SMC..")
             print("Round is ", t)
             break

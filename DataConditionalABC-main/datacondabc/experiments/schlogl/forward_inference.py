@@ -51,7 +51,8 @@ results = abcsmc_forward(
     niter=10,
     q=0.5,
     max_sims=1e+5,
-    amortized=True
+    amortized=True,
+    ckpt_path="./models/best-model-pretrained-v1.ckpt"
 )
 
 # print results

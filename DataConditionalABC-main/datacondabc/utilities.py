@@ -1,7 +1,10 @@
 import torch
 import numba as nb
 import numpy as np
-import ot
+try:
+    import ot
+except ImportError:
+    ot = None
 from tqdm import tqdm
 from typing import Callable
 from math import log, sqrt, exp, pi
