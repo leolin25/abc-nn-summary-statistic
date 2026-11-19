@@ -4,6 +4,7 @@ from simulator.utilities import sample_prior
 from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 
 """
 This file is for experimenting the ABC-SMC loop with model-based summary statistics.
@@ -58,24 +59,17 @@ results = abcsmc_forward(
     summarise=summarise,
     n_part=1000,
     max_iter=5,
-    q=0.1
+    q=0.1,
+    max_sims=1e+5
 )
 # print results
-"""
-tuple: A tuple containing the following arrays up to the final completed round (t+1):
-            - abc_particles (np.ndarray): The accepted parameter vectors forming the posterior.
-            - abc_weights (np.ndarray): The calculated Sequential Monte Carlo importance weights.
-            - abc_round_time (np.ndarray): The computation time (in seconds) spent simulating and sampling per round.
-            - acc_rates (np.ndarray): The percentage of proposed simulations accepted in each round.
-            - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
-            - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
-"""
 print('Final ABC-SMC results:')
 print('Weights: ', results[1])
 print('Round times: ', results[2])
 print('Acceptance rates: ', results[3])
 print('Observed summaries: ', results[4])
 print('ABC thresholds: ', results[5])
+print('Total amount of sims: ', results[6])
 
 # true params and the labels latex
 true_params = np.array([0.1, 0.2, 0.5])
@@ -86,65 +80,45 @@ final_particles = results[0][-1]
 final_weights = results[1][-1]
 final_weights = final_weights / np.sum(final_weights)
 
-# resample according to the weights to get the weighted posterior
-resampled_indices = np.random.choice(
-    len(final_particles), size=10000, replace=True, p=final_weights
-)
-posterior_samples = final_particles[resampled_indices]
+fig, axes = plt.subplots(1, 3, figsize=(14,5))
 
-# create box plot
-fig, ax = plt.subplots(figsize=(8, 5))
+for i, ax in enumerate(axes):
+    low_bound, high_bound = prior_bounds[i, 0], prior_bounds[i, 1]
+    x_grid = np.linspace(low_bound, high_bound, 500)
 
-bp = ax.boxplot(
-    posterior_samples,
-    tick_labels=param_names,
-    patch_artist=True,
-    widths=0.45,
-    boxprops=dict(facecolor='#4C72B0', alpha=0.65),
-    medianprops=dict(color='black', linewidth=1.5),
-    flierprops=dict(marker='o', markersize=2, alpha=0.25),
-)
-
-# overlay prior bounds interval for reference
-for i in range(len(param_names)):
-    ax.vlines(
-        i + 1,
-        prior_bounds[i, 0],
-        prior_bounds[i, 1],
-        color='gray',
-        linestyle='--',
-        linewidth=1.5,
-        alpha=0.7,
-        label='Prior Bounds' if i == 0 else "",
+    ax.hist(
+        final_particles[:, i],
+        bins=25,
+        weights=final_weights,
+        density=True,
+        color='#4C72B0',
+        alpha=0.3,
+        edgecolor='white',
     )
-    ax.hlines(
-        [prior_bounds[i, 0], prior_bounds[i, 1]],
-        i + 1 - 0.12,
-        i + 1 + 0.12,
-        color='gray',
-        linewidth=1.5,
-        alpha=0.7,
-    )
+    kde = gaussian_kde(final_particles[:, i], weights=final_weights)
+    posterior_pdf = kde(x_grid)
+    ax.plot(x_grid, posterior_pdf, color='#4C72B0', linewidth=2, label='Posterior KDE')
+    ax.fill_between(x_grid, posterior_pdf, color='#4C72B0', alpha=0.2)
 
-# overlay true observed parameter values
-ax.scatter(
-    range(1, len(param_names) + 1),
-    true_params,
-    color='#D62728',
-    zorder=5,
-    s=75,
-    marker='D',
-    label='True Parameter Value',
-)
+    # overlay posterior mean and true parameter value
+    post_mean = np.average(final_particles[:, i], weights=final_weights)
+    ax.axvline(post_mean, color='#1f4e78', linestyle='-.', linewidth=1.5, label='Posterior Mean')
+    ax.axvline(true_params[i], color='#D62728', linestyle='--', linewidth=2, label='True Value')
 
-# plot the results
-ax.set_title('ABC-SMC Posterior Parameter Distributions')
-ax.set_ylabel('Parameter Value')
-ax.grid(axis='y', linestyle='--', alpha=0.4)
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.legend(loc='upper left')
+    # add labels and ticks
+    ax.set_title(f'Posterior of {param_names[i]}', fontsize=12, fontweight='bold')
+    ax.set_xlabel(param_names[i], fontsize=11)
+    if i == 0:
+        ax.set_ylabel('Probability Density')
+    ax.set_xlim(low_bound - 0.05 * (high_bound - low_bound), high_bound + 0.05 * (high_bound - low_bound))
+    ax.set_ylim(bottom=0)
+    ax.grid(axis='y', linestyle='--', alpha=0.4)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+axes[0].legend(loc='upper left', frameon=True)
+fig.suptitle('Marginal Posterior Parameter Distributions', fontsize=14, fontweight='bold', y=1.02)
 
 plt.tight_layout()
-plt.savefig('abcsmc_posterior_parameters.png', dpi=300)
+plt.savefig('abcsmc_posterior_distributions_model.png', dpi=300, bbox_inches='tight')
 plt.show()

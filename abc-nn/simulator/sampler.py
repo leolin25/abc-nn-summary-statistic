@@ -135,9 +135,11 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
 
         print(f"The threshold for this round was {abc_thresholds[t]}")
         print(f"Acceptance rate is {round(acceptance_rate, 2)}%")
+        print(f"Total simulations is {cum_total_sim[t]}")
 
-        if t > 2 and acceptance_rate < 1.5:
-            print(f"Acceptance rate below 1.5%, terminating ABC-SMC loop")
+        # we have exceeded the max amount of sims and have run at least 2 rounds
+        if t > 2 and cum_total_sim[t] >= max_sims:
+            print(f"Exceeded max sims, terminating ABC-SMC loop")
             break
 
         print(f"Saving inference results up to round {t + 1}.")

@@ -59,25 +59,18 @@ results = abcsmc_forward(
     summarise=summarise,
     n_part=1000,
     max_iter=5,
-    q=0.1
+    q=0.1,
+    max_sims=1e+5
 )
 
 # print results
-"""
-tuple: A tuple containing the following arrays up to the final completed round (t+1):
-            - abc_particles (np.ndarray): The accepted parameter vectors forming the posterior.
-            - abc_weights (np.ndarray): The calculated Sequential Monte Carlo importance weights.
-            - abc_round_time (np.ndarray): The computation time (in seconds) spent simulating and sampling per round.
-            - acc_rates (np.ndarray): The percentage of proposed simulations accepted in each round.
-            - obs_summaries (np.ndarray): The neural network's evolving summary statistic representation of the observed data.
-            - abc_thresholds (np.ndarray): The epsilon distance thresholds enforced at each round.
-"""
 print('Final ABC-SMC results:')
 print('Weights: ', results[1])
 print('Round times: ', results[2])
 print('Acceptance rates: ', results[3])
 print('Observed summaries: ', results[4])
 print('ABC thresholds: ', results[5])
+print('Total amount of sims: ', results[6])
 
 # true params and the labels latex
 true_params = np.array([0.1, 0.2, 0.5])
@@ -108,14 +101,6 @@ for i, ax in enumerate(axes):
     ax.plot(x_grid, posterior_pdf, color='#4C72B0', linewidth=2, label='Posterior KDE')
     ax.fill_between(x_grid, posterior_pdf, color='#4C72B0', alpha=0.2)
 
-    # overlay uniform prior density
-    prior_height = 1.0 / (high_bound - low_bound)
-    ax.hlines(
-        prior_height, low_bound, high_bound,
-        color='gray', linestyle=':', linewidth=1.8, label='Uniform Prior'
-    )
-    ax.vlines([low_bound, high_bound], 0, prior_height, color='gray', linestyle=':', linewidth=1.8)
-
     # overlay posterior mean and true parameter value
     post_mean = np.average(final_particles[:, i], weights=final_weights)
     ax.axvline(post_mean, color='#1f4e78', linestyle='-.', linewidth=1.5, label='Posterior Mean')
@@ -136,5 +121,5 @@ axes[0].legend(loc='upper left', frameon=True)
 fig.suptitle('Marginal Posterior Parameter Distributions', fontsize=14, fontweight='bold', y=1.02)
 
 plt.tight_layout()
-plt.savefig('abcsmc_posterior_distributions.png', dpi=300, bbox_inches='tight')
+plt.savefig('abcsmc_posterior_distributions_canonical.png', dpi=300, bbox_inches='tight')
 plt.show()
