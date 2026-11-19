@@ -11,7 +11,11 @@ This file is for experimenting the ABC-SMC loop with model-based summary statist
 """
 
 # simulate an Ornstein-Uhlenbeck process to generate observed data
-obs = ou_exact(h=0.01, T=10.0, mu=0.1, sigma=0.2, tau=0.5, x0=0.0, n_paths=1)[0].flatten()
+#obs = ou_exact(h=0.01, T=10.0, mu=0.1, sigma=0.2, tau=0.5, x0=0.0, n_paths=1)[0].flatten()
+#np.save('obs_data.npy', obs)
+
+# load saved obs data
+obs = np.load('obs_data.npy')
 
 def simulate_ou(particle):
     mu, sigma, tau = particle
@@ -58,8 +62,8 @@ results = abcsmc_forward(
     simulator=simulate_ou,
     summarise=summarise,
     n_part=1000,
-    max_iter=5,
-    q=0.1,
+    max_iter=10,
+    q=0.5,
     max_sims=1e+5
 )
 # print results

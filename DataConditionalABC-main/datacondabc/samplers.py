@@ -545,6 +545,7 @@ def abcsmc_forward(
     init_size: int = 10000,
     amortized: bool = False,
     always_train: bool = True,
+    max_sims: int = 1e+5
 ):
 
     param_dim = len(prior_bounds)
@@ -707,6 +708,7 @@ def abcsmc_forward(
     abc_weights = np.zeros((niter, npart))
     abc_cov = np.zeros((param_dim, param_dim))
     abc_thresholds = np.zeros(niter)
+    cum_total_sim = np.zeros(niter)
 
     # Summaries across rounds.
     obssummaries = torch.zeros(niter, param_dim)
@@ -802,6 +804,8 @@ def abcsmc_forward(
         # Total round time.
         abcround_time[t] = time.time() - round_start
 
+        cum_total_sim[t] = cum_total_sim[t-1] + total_sim
+
         # Compute acceptance rate and stop if it's below 1.5%.
         acceptance_rate = (npart / total_sim) * 100
         acc_rates[t] = acceptance_rate
@@ -823,7 +827,8 @@ def abcsmc_forward(
             "\nAcceptance rate is",
             round(acceptance_rate, 2),
         )
-        if t > 2 and acceptance_rate < 1.5:
+        print(f'Total simulations are {cum_total_sim[t]}')
+        if t > 2 and total_sim > max_sims:
             print("Ending ABC-SMC..")
             print("Round is ", t)
             break

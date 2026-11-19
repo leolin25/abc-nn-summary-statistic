@@ -15,7 +15,7 @@ from functools import partial
 from datacondabc.samplers import abcsmc_forward
 from datacondabc.simulators.approxsim import finescale_em_2d
 
-# Load data.
+# Load data
 obs = np.load("obs.npy")
 n = obs.shape[1] - 1
 
@@ -24,7 +24,7 @@ A, dt, x0 = 100, 1, obs[0, :, 0]
 simulator = partial(finescale_em_2d, x0, n, A, dt)
 
 # Uniform prior bounds.
-prior_bounds = np.array([[0.0, 1.0], [0.00, 0.05], [0.0, 1]])
+prior_bounds = np.array([[0.0, 0.2], [0.1, 0.3], [0.4, 0.6]])
 
 # Run ABC-SMC.
 out = abcsmc_forward(obs=obs, prior_bounds=prior_bounds, simulator=simulator, amortized=True)

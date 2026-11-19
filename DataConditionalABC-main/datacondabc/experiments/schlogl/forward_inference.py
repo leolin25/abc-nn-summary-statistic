@@ -13,33 +13,103 @@ import sys
 import torch
 import pickle
 import numpy as np
-from functools import partial
-from datacondabc.samplers import dynamic_forward_abcsmc
+from pathlib import Path
+from datacondabc.samplers import abcsmc_forward
 from datacondabc.simulators.approxsim import finescale_em
 from datacondabc.models import schlogl
 from datacondabc.nnets import PENCNN
+from datacondabc.simulators.exactsim import ou
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 
-# True parameter.
-k1, k2, k4 = 3e-7, 1e-4, 3.5
-theta = np.array([k1, k2, k4])
-param_dim = len(theta)
-
-# Configuration for SDE solver.
-A, dt, n, x0, d = 100, 1, 50, 249, 1
-simulator = partial(finescale_em, schlogl, x0, n, A, dt)
+def simulate_ou(particle):
+    mu, sigma, tau = particle
+    trajectory = ou(
+        h=0.01,
+        T=10.0,
+        mu=mu,
+        sigma=sigma,
+        tau=tau,
+        x0=0.0,
+        n_paths=1,
+    )[0]
+    return trajectory.flatten()
 
 # Prior.
-prior_bounds = np.array([[1.6e-7, 1e-6], [0.0, 5e-4], [1, 5]])
+prior_bounds = np.array([[0.0, 0.2], [0.1, 0.3], [0.4, 0.6]])
 
-# Quantile for determining the ABC thresholds.
-q = 50
+# load saved obs data
+project_root = Path(__file__).resolve().parents[5]
+obs = np.load(project_root / 'obs_data.npy')
 
-# ABC-SMC configuration.
-niter = 50
-npart = 10000
-xo = np.load("obs.npy")
-init_size = 2000000
-out = dynamic_forward_abcsmc(xo, npart, prior_bounds, q, niter, init_size, simulator)
+results = abcsmc_forward(
+    obs=obs,
+    prior_bounds=prior_bounds,
+    simulator=simulate_ou,
+    npart=1000,
+    niter=10,
+    q=0.5,
+    max_sims=1e+5,
+    amortized=True
+)
 
-with open('f_run_timemeasure_' + str(int(sys.argv[1])) + '.pkl', 'wb') as f:
-    pickle.dump(out, f)
+# print results
+print('Final ABC-SMC results:')
+print('Weights: ', results[1])
+print('Round times: ', results[2])
+print('Acceptance rates: ', results[3])
+print('Observed summaries: ', results[4])
+print('ABC thresholds: ', results[5])
+print('Total amount of sims: ', results[6])
+
+# true params and the labels latex
+true_params = np.array([0.1, 0.2, 0.5])
+param_names = [r'$\mu$', r'$\sigma$', r'$\tau$']
+
+# extract particles and importance weight from last round
+final_particles = results[0][-1]
+final_weights = results[1][-1]
+final_weights = final_weights / np.sum(final_weights)
+
+fig, axes = plt.subplots(1, 3, figsize=(14,5))
+
+for i, ax in enumerate(axes):
+    low_bound, high_bound = prior_bounds[i, 0], prior_bounds[i, 1]
+    x_grid = np.linspace(low_bound, high_bound, 500)
+
+    ax.hist(
+        final_particles[:, i],
+        bins=25,
+        weights=final_weights,
+        density=True,
+        color='#4C72B0',
+        alpha=0.3,
+        edgecolor='white',
+    )
+    kde = gaussian_kde(final_particles[:, i], weights=final_weights)
+    posterior_pdf = kde(x_grid)
+    ax.plot(x_grid, posterior_pdf, color='#4C72B0', linewidth=2, label='Posterior KDE')
+    ax.fill_between(x_grid, posterior_pdf, color='#4C72B0', alpha=0.2)
+
+    # overlay posterior mean and true parameter value
+    post_mean = np.average(final_particles[:, i], weights=final_weights)
+    ax.axvline(post_mean, color='#1f4e78', linestyle='-.', linewidth=1.5, label='Posterior Mean')
+    ax.axvline(true_params[i], color='#D62728', linestyle='--', linewidth=2, label='True Value')
+
+    # add labels and ticks
+    ax.set_title(f'Posterior of {param_names[i]}', fontsize=12, fontweight='bold')
+    ax.set_xlabel(param_names[i], fontsize=11)
+    if i == 0:
+        ax.set_ylabel('Probability Density')
+    ax.set_xlim(low_bound - 0.05 * (high_bound - low_bound), high_bound + 0.05 * (high_bound - low_bound))
+    ax.set_ylim(bottom=0)
+    ax.grid(axis='y', linestyle='--', alpha=0.4)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+axes[0].legend(loc='upper left', frameon=True)
+fig.suptitle('Marginal Posterior Parameter Distributions', fontsize=14, fontweight='bold', y=1.02)
+
+plt.tight_layout()
+plt.savefig('abcsmc_posterior_distributions_model.png', dpi=300, bbox_inches='tight')
+plt.show()
