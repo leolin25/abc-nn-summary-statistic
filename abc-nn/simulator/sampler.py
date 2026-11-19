@@ -144,7 +144,7 @@ def abcsmc_forward(obs: np.ndarray, prior_bounds: np.ndarray, simulator: callabl
 
         print(f"Saving inference results up to round {t + 1}.")
 
-    # return final round results
+    # return data up to final round
     return (
         abc_particles[: t+1],
         abc_weights[: t+1],

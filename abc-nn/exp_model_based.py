@@ -5,6 +5,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
+import pandas as pd
 
 """
 This file is for experimenting the ABC-SMC loop with model-based summary statistics.
@@ -66,14 +67,45 @@ results = abcsmc_forward(
     q=0.5,
     max_sims=1e+5
 )
-# print results
-print('Final ABC-SMC results:')
-print('Weights: ', results[1])
-print('Round times: ', results[2])
-print('Acceptance rates: ', results[3])
-print('Observed summaries: ', results[4])
-print('ABC thresholds: ', results[5])
-print('Total amount of sims: ', results[6])
+
+# Unpack 7-element results tuple
+(
+    abc_particles,
+    abc_weights,
+    round_times,
+    acc_rates,
+    obs_summaries,
+    thresholds,
+    cum_sims,
+) = results
+
+n_rounds, n_part, _ = abc_particles.shape
+obs_summaries_np = np.asarray(obs_summaries)
+
+# export results as csv
+metrics_data = {
+    "round": np.arange(1, n_rounds + 1),
+    "round_time": round_times,
+    "acceptance_rate": acc_rates,
+    "abc_threshold": thresholds,
+    "cum_total_sims": cum_sims,
+}
+for j in range(obs_summaries_np.shape[1]):
+    metrics_data[f"obs_summary_{j}"] = obs_summaries_np[:, j]
+
+round_metrics_df = pd.DataFrame(metrics_data)
+round_metrics_df.to_csv(f"model_round_metrics.csv", index=False)
+
+# save particles in long format
+particles_df = pd.DataFrame({
+    "round": np.repeat(np.arange(1, n_rounds + 1), n_part),
+    "particle_idx": np.tile(np.arange(n_part), n_rounds),
+    "mu": abc_particles[:, :, 0].ravel(),
+    "sigma": abc_particles[:, :, 1].ravel(),
+    "tau": abc_particles[:, :, 2].ravel(),
+    "weight": abc_weights.ravel(),
+})
+particles_df.to_csv(f"model_particles_weights.csv", index=False)
 
 # true params and the labels latex
 true_params = np.array([0.1, 0.2, 0.5])

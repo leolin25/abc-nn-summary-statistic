@@ -21,6 +21,7 @@ from datacondabc.nnets import PENCNN
 from datacondabc.simulators.exactsim import ou_exact
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
+import pandas as pd
 
 def simulate_ou(particle):
     mu, sigma, tau = particle
@@ -48,22 +49,56 @@ results = abcsmc_forward(
     prior_bounds=prior_bounds,
     simulator=simulate_ou,
     npart=1000,
-    niter=10,
-    q=0.5,
-    max_sims=1e+5,
+    niter=100,
+    q=0.75,
+    max_sims=1e+7,
     amortized=True,
     ckpt_path="./models/best-model-pretrained-v1.ckpt"
 )
 
-# print results
-print('Final ABC-SMC results:')
-print('Weights: ', results[1])
-print('Round times: ', results[2])
-print('Training times: ', results[3])
-print('Acceptance rates: ', results[4])
-print('Observed summaries: ', results[5])
-print('ABC thresholds: ', results[6])
-print('Total amount of sims: ', results[7])
+# unpack results tuple
+(
+    abc_particles,
+    abc_weights,
+    round_times,
+    training_times,
+    acc_rates,
+    obs_summaries,
+    thresholds,
+    cum_sims,
+) = results
+
+n_rounds, n_part, _ = abc_particles.shape
+obs_summaries_np = (
+    obs_summaries.detach().cpu().numpy()
+    if hasattr(obs_summaries, "detach")
+    else np.asarray(obs_summaries)
+)
+
+# save results to csv
+round_metrics_df = pd.DataFrame({
+    "round": np.arange(1, n_rounds + 1),
+    "round_time": round_times,
+    "train_time": training_times,
+    "acceptance_rate": acc_rates,
+    "abc_threshold": thresholds,
+    "cum_total_sims": cum_sims,
+    "obs_summary_mu": obs_summaries_np[:, 0],
+    "obs_summary_sigma": obs_summaries_np[:, 1],
+    "obs_summary_tau": obs_summaries_np[:, 2],
+})
+round_metrics_df.to_csv("nn_round_metrics.csv", index=False)
+
+# save particle data in an alternative long format
+particles_df = pd.DataFrame({
+    "round": np.repeat(np.arange(1, n_rounds + 1), n_part),
+    "particle_idx": np.tile(np.arange(n_part), n_rounds),
+    "mu": abc_particles[:, :, 0].ravel(),
+    "sigma": abc_particles[:, :, 1].ravel(),
+    "tau": abc_particles[:, :, 2].ravel(),
+    "weight": abc_weights.ravel(),
+})
+particles_df.to_csv("nn_particles_weights.csv", index=False)
 
 # true params and the labels latex
 true_params = np.array([0.1, 0.2, 0.5])
