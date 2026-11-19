@@ -59,10 +59,11 @@ results = abcsmc_forward(
 print('Final ABC-SMC results:')
 print('Weights: ', results[1])
 print('Round times: ', results[2])
-print('Acceptance rates: ', results[3])
-print('Observed summaries: ', results[4])
-print('ABC thresholds: ', results[5])
-print('Total amount of sims: ', results[6])
+print('Training times: ', results[3])
+print('Acceptance rates: ', results[4])
+print('Observed summaries: ', results[5])
+print('ABC thresholds: ', results[6])
+print('Total amount of sims: ', results[7])
 
 # true params and the labels latex
 true_params = np.array([0.1, 0.2, 0.5])
