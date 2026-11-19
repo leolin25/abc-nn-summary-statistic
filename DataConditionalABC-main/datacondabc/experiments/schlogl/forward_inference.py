@@ -113,5 +113,5 @@ axes[0].legend(loc='upper left', frameon=True)
 fig.suptitle('Marginal Posterior Parameter Distributions', fontsize=14, fontweight='bold', y=1.02)
 
 plt.tight_layout()
-plt.savefig('abcsmc_posterior_distributions_model.png', dpi=300, bbox_inches='tight')
+plt.savefig('abcsmc_posterior_distributions_NN.png', dpi=300, bbox_inches='tight')
 plt.show()
