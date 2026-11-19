@@ -63,9 +63,9 @@ results = abcsmc_forward(
     simulator=simulate_ou,
     summarise=summarise,
     n_part=1000,
-    max_iter=5,
-    q=0.5,
-    max_sims=1e+5
+    max_iter=100,
+    q=0.75,
+    max_sims=1e+7
 )
 
 # Unpack 7-element results tuple
