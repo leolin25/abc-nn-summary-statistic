@@ -50,10 +50,10 @@ results = abcsmc_forward(
     simulator=simulate_ou,
     npart=1000,
     niter=100,
-    q=0.75,
+    q=75, # use percentile instead of quartile
     max_sims=1e+7,
     amortized=True,
-    ckpt_path="./models/best-model-pretrained-v1.ckpt"
+    ckpt_path=str(Path(__file__).resolve().parent / "models" / "best-model-pretrained-v1.ckpt")
 )
 
 # unpack results tuple

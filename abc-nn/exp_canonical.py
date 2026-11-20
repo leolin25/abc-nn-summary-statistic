@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import pandas as pd
+from pathlib import Path
 
 """
 This file is for experimenting the ABC-SMC algorithm with canonical summary statistics
@@ -13,10 +14,11 @@ This file is for experimenting the ABC-SMC algorithm with canonical summary stat
 
 # simulate an Ornstein-Uhlenbeck process to generate observed data
 #obs = ou_exact(h=0.01, T=10.0, mu=0.1, sigma=0.2, tau=0.5, x0=0.0, n_paths=1)[0].flatten()
-#np.save('obs_data.npy', obs)
+#np.save(OBS_DATA_PATH, obs)
 
 # load saved obs data
-obs = np.load('obs_data.npy')
+OBS_DATA_PATH = Path(__file__).resolve().parent / 'obs_data.npy'
+obs = np.load(OBS_DATA_PATH)
 
 def simulate_ou(particle):
     mu, sigma, tau = particle
