@@ -848,7 +848,7 @@ def abcsmc_forward(
             round(acceptance_rate, 2),
         )
         print(f'Total simulations are {cum_total_sim[t]}')
-        if t >= 1 and total_sim > max_sims:
+        if t >= 1 and cum_total_sim[t] > max_sims:
             print("Ending ABC-SMC..")
             print("Round is ", t)
             break
