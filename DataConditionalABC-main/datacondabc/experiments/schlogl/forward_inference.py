@@ -75,30 +75,42 @@ obs_summaries_np = (
     else np.asarray(obs_summaries)
 )
 
-# save results to csv
-round_metrics_df = pd.DataFrame({
-    "round": np.arange(1, n_rounds + 1),
-    "round_time": round_times,
-    "train_time": training_times,
-    "acceptance_rate": acc_rates,
-    "abc_threshold": thresholds,
-    "cum_total_sims": cum_sims,
-    "obs_summary_mu": obs_summaries_np[:, 0],
-    "obs_summary_sigma": obs_summaries_np[:, 1],
-    "obs_summary_tau": obs_summaries_np[:, 2],
-})
-round_metrics_df.to_csv("nn_round_metrics.csv", index=False)
+# Align all outputs to the exact number of completed rounds
+n_valid = min(
+    n_rounds,
+    len(round_times),
+    len(acc_rates),
+    len(thresholds),
+    len(cum_sims),
+    len(obs_summaries_np),
+)
 
-# save particle data in an alternative long format
-particles_df = pd.DataFrame({
-    "round": np.repeat(np.arange(1, n_rounds + 1), n_part),
-    "particle_idx": np.tile(np.arange(n_part), n_rounds),
+abc_particles = abc_particles[:n_valid]
+abc_weights = abc_weights[:n_valid]
+obs_summaries_np = obs_summaries_np[:n_valid]
+
+# 1. Export per-round metrics
+metrics_data = {
+    "round": np.arange(1, n_valid + 1),
+    "round_time": np.asarray(round_times)[:n_valid],
+    "acceptance_rate": np.asarray(acc_rates)[:n_valid],
+    "abc_threshold": np.asarray(thresholds)[:n_valid],
+    "cum_total_sims": np.asarray(cum_sims)[:n_valid],
+}
+for j in range(obs_summaries_np.shape[1]):
+    metrics_data[f"obs_summary_{j}"] = obs_summaries_np[:, j]
+
+pd.DataFrame(metrics_data).to_csv("nn_round_metrics.csv", index=False)
+
+# 2. Export particles and weights
+pd.DataFrame({
+    "round": np.repeat(np.arange(1, n_valid + 1), n_part),
+    "particle_idx": np.tile(np.arange(n_part), n_valid),
     "mu": abc_particles[:, :, 0].ravel(),
     "sigma": abc_particles[:, :, 1].ravel(),
     "tau": abc_particles[:, :, 2].ravel(),
     "weight": abc_weights.ravel(),
-})
-particles_df.to_csv("nn_particles_weights.csv", index=False)
+}).to_csv("nn_particles_weights.csv", index=False)
 
 # true params and the labels latex
 true_params = np.array([0.1, 0.2, 0.5])
