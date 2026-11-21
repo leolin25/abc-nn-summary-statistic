@@ -89,7 +89,7 @@ abc_particles = abc_particles[:n_valid]
 abc_weights = abc_weights[:n_valid]
 obs_summaries_np = obs_summaries_np[:n_valid]
 
-# 1. Export per-round metrics
+# Export per-round metrics
 metrics_data = {
     "round": np.arange(1, n_valid + 1),
     "round_time": np.asarray(round_times)[:n_valid],
@@ -102,7 +102,7 @@ for j in range(obs_summaries_np.shape[1]):
 
 pd.DataFrame(metrics_data).to_csv("nn_round_metrics.csv", index=False)
 
-# 2. Export particles and weights
+# Export particles and weights
 pd.DataFrame({
     "round": np.repeat(np.arange(1, n_valid + 1), n_part),
     "particle_idx": np.tile(np.arange(n_part), n_valid),
