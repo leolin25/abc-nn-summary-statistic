@@ -11,6 +11,8 @@ The other folder is 'abc-nn', this is a mini-project similar to the package but 
 
 If experimenting with NN summary statistics then make sure terminal is in schlogl folder and then run forward_inference.py, this is so the model can be seen.
 
+The results of ABC-SMC experiments can be found in ABC-results
+
 ## Train model
 
 The pretrained model is trained on the Warwick HPC Avon cluster.
