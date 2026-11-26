@@ -9,25 +9,26 @@ RUN_DATE = "21-11-26"
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / RUN_DATE
 
-TRUE_PARAMS = {
+true_params = {
     "mu": (0.1, r"$\mu$"),
     "sigma": (0.2, r"$\sigma$"),
     "tau": (0.5, r"$\tau$"),
 }
 
-# X-axis computational budget zoom levels (rows from top to bottom)
-# Adjust these if your runs used a smaller/larger max_sims cap
-BUDGET_ROWS = [5e5, 2e6, 1e7]
+# total_sim xlims for each row
+rows = [1e5, 1e6, 1e7]
 
-# Visual styling matching the reference plot (color, marker, legend label)
+# marker styling
 METHOD_STYLES = {
     "model": {"color": "black", "marker": "s", "label": "model-based"},
-    "canonical": {"color": "#D62728", "marker": "o", "label": "canonical"},
-    "nn": {"color": "#1F77B4", "marker": "^", "label": "neural (PENCNN)"},
+    "canonical": {"color": "red", "marker": "o", "label": "canonical"},
+    "nn": {"color": "blue", "marker": "^", "label": "PEN"},
 }
 
 def load_abc_results(data_dir: Path) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
-    """Import all round metrics and particle/weight CSVs from a dated run folder."""
+    """
+    Import data from csv files
+    """
     if not data_dir.exists():
         available = (
             sorted(p.name for p in data_dir.parent.iterdir() if p.is_dir())
@@ -79,7 +80,9 @@ def weighted_quantiles(
 
 
 def compute_ci_trajectories(results: dict, param_names: list[str]) -> dict:
-    """Compute per-round 5%, 50%, and 95% weighted quantiles vs. cumulative sims."""
+    """
+    Compute 5%, 50% and 95% quantiles of the weighted posterior
+    """
     ci_data = {}
     for method, data in results.items():
         df_m = data["metrics"].sort_values("round")
@@ -109,13 +112,15 @@ def compute_ci_trajectories(results: dict, param_names: list[str]) -> dict:
 
 
 def _sci_formatter(x: float, _) -> str:
-    """Format axis ticks like '0e+00', '5e+05', '1.5e+06'."""
+    """
+    Format x labels to sci format (e.g 1e+07)
+    """
     if x == 0:
         return "0e+00"
     return f"{x:.1e}".replace(".0e", "e")
 
 
-def plot_90ci_budgets(
+def plot(
     ci_data: dict,
     true_params: dict,
     budget_rows: list[float],
@@ -135,7 +140,6 @@ def plot_90ci_budgets(
     )
     axes = np.atleast_2d(axes)
 
-    # Plot order: model (black squares), canonical (red circles), nn (blue triangles)
     ordered_methods = [m for m in ["model", "canonical", "nn"] if m in ci_data] + [
         m for m in ci_data if m not in {"model", "canonical", "nn"}
     ]
@@ -163,7 +167,7 @@ def plot_90ci_budgets(
         for r, max_budget in enumerate(budget_rows):
             ax = axes[r, c]
 
-            # Ground-truth horizontal line
+            # true param line
             ax.axhline(true_val, color="#32CD32", linestyle="-", linewidth=1.3, zorder=1)
 
             for method in ordered_methods:
@@ -175,7 +179,6 @@ def plot_90ci_budgets(
                 q50 = ci_data[method][param]["q50"]
                 q95 = ci_data[method][param]["q95"]
 
-                # Upper & lower 90% CI bounds (solid lines with markers)
                 ax.plot(
                     sims,
                     q95,
@@ -196,8 +199,6 @@ def plot_90ci_budgets(
                     label="_nolegend_",
                     zorder=3,
                 )
-
-                # Posterior median (thin dashed line, no markers)
                 ax.plot(
                     sims,
                     q50,
@@ -209,14 +210,13 @@ def plot_90ci_budgets(
                     zorder=2,
                 )
 
+            # set xlim and ylim and add sci formatting
             ax.set_xlim(0, max_budget)
             ax.set_ylim(col_ymin, col_ymax)
             ax.xaxis.set_major_formatter(FuncFormatter(_sci_formatter))
-            ax.xaxis.set_major_locator(plt.MaxNLocator(4))
-            ax.yaxis.set_major_locator(plt.MaxNLocator(4))
             ax.tick_params(axis="both", labelsize=8.5, direction="in", top=True, right=True)
 
-            # Parameter symbol in top-right corner of each panel
+            # parameter symbol in top-right corner
             ax.text(
                 0.94,
                 0.90,
@@ -231,26 +231,33 @@ def plot_90ci_budgets(
             if c == 0:
                 ax.set_ylabel("90 % CIs", fontsize=10)
             if r == n_rows - 1:
-                ax.set_xlabel("comp. budget", fontsize=10)
+                ax.set_xlabel("total_sims", fontsize=10)
 
-    axes[0, 0].legend(loc="upper left", frameon=False, fontsize=8.5)
+    # add legend
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="center left",
+        frameon=False,
+        fontsize=7,
+    )
     plt.subplots_adjust(wspace=0.18, hspace=0.22)
 
     if save_path is not None:
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         print(f"Saved figure to: {save_path}")
 
+    fig.suptitle(r"OU process ($\mu=0.1, \sigma=0.2, \tau=0.5$)")
     plt.show()
-
 
 if __name__ == "__main__":
     results, all_metrics, all_particles = load_abc_results(DATA_DIR)
-    ci_data = compute_ci_trajectories(results, list(TRUE_PARAMS.keys()))
+    ci_data = compute_ci_trajectories(results, list(true_params.keys()))
 
-    plot_90ci_budgets(
+    plot(
         ci_data=ci_data,
-        true_params=TRUE_PARAMS,
-        budget_rows=BUDGET_ROWS,
-        ylims=YLIMS,
+        true_params=true_params,
+        budget_rows=rows,
         save_path=DATA_DIR / "abc_90ci_comparison.png",
     )
