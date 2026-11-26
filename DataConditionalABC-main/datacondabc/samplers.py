@@ -920,7 +920,7 @@ def abcsmc_forward(
     )
 
 
-def mcmc(theta, prior, dt, xo, iterations=100000):
+def mcmc(theta, prior, h, xo, iterations=100000):
     """
     def loglik(r, dt, theta):
         b, a, s = theta
@@ -941,51 +941,52 @@ def mcmc(theta, prior, dt, xo, iterations=100000):
         return logpdf
     """
 
-    def loglik(x, dt, theta):
-        a, b, s = theta
-        logpdf = 0
-        for t in range(1, len(x)):
-            mu = a + (x[t - 1] - a) * exp(-b * dt)
-            var = (s**2) * (1 - exp(-2 * b * dt)) / (2 * b)
-            logpdf += norm_logpdf(x[t], mu, sqrt(var))
-        return logpdf
+    x_prev = xo[:-1]
+    x_next = xo[1:]
+    n_steps = len(x_prev)
+    def loglik(theta: np.ndarray) -> float:
+        mu, sigma, tau = theta
+        rate = 1.0 / tau
+        exp_term = np.exp(-rate * h)
+        var = (sigma**2 / (2.0 * rate)) * (1.0 - exp_term**2)
+        mean = x_prev * exp_term + mu * (1.0 - exp_term)
+        return -0.5 * (
+            n_steps * (np.log(2.0 * np.pi) + np.log(var)) + np.sum((x_next - mean) ** 2) / var
+        )
+
+    def logprior(theta: np.ndarray) -> float:
+        return sum(prior[k].logpdf(theta[k]) for k in range(len(theta)))
 
     p = len(theta)
-
     eps = 10e-8
     s_d = (2.4**2) / p
 
     # Covariance for the proposal density.
-    cov = np.diag([0.1] * p)
+    cov = np.diag([0.01**2] * p)
 
     # Markov chain in which we store the parameter values.
     chain = np.zeros((iterations, p))
     chain[0] = theta
 
     # The initial likelihood.
-    lik = loglik(xo, dt, theta)
+    lik = loglik(theta)
+    lp_old = logprior(theta)
 
     # Start MCMC.
     for t in range(1, iterations):
-        # Track progress.
-        if t % 1000 == 0:
-            print(t)
-
-        # Sample new parameter.
         theta_new = np.random.multivariate_normal(theta, cov)
-        lik_new = loglik(xo, dt, theta_new)
+        lp_new = logprior(theta_new)
 
-        # Compute prior probabilities.
-        prior_old = np.sum([prior[k].logpdf(theta[k]) for k in range(p)])
-        prior_new = np.sum([prior[k].logpdf(theta_new[k]) for k in range(p)])
-
-        # Metropolis-Hastings ratio.
-        alpha = lik_new + prior_new - (lik + prior_old)
-        if np.random.uniform(0, 1) < np.exp(alpha):
-            theta = theta_new
-            lik = lik_new
+        if np.isfinite(lp_new):
+            lik_new = loglik(theta_new)
+            alpha = (lik_new + lp_new) - (lik + lp_old)
+            if np.log(np.random.uniform()) < alpha:
+                theta = theta_new
+                lik = lik_new
+                lp_old = lp_new
         chain[t] = theta
-        if t > 10000 and t % 1000 == 0:
-            # Adaptive covariance MCMC.
-            cov = s_d * np.cov(chain[:t].T) + s_d * eps * np.eye(p, p)
+
+        if t > 10_000 and t % 1_000 == 0:
+            cov = s_d * np.cov(chain[:t].T) + s_d * eps * np.eye(p)
+                                                        
     return chain
