@@ -9,10 +9,12 @@ This repository contains 2 main folders 'DataConditionalABC-main' which contains
 
 The other folder is 'abc-nn', this is a mini-project similar to the package but contains experiments for canonical and model-based summary statistics.
 
-If experimenting with NN summary statistics then make sure terminal is in schlogl folder and then run forward_inference.py, this is so the model can be seen.
+- To test canonical run exp_canonical.py
+- To test model-based run exp_model_based.py
+- To test NN run forward_inference.py
 
-The results of ABC-SMC experiments can be found in ABC-results
+The results of ABC-SMC experiments for OU process are stored in OU-results as csv files. The file results.py in OU-results produces the plots.
 
 ## Train model
 
-The pretrained model is trained on the Warwick HPC Avon cluster.
+The PEN model is pre-trained and stored in ou/models
