@@ -36,7 +36,7 @@ def simulate_ou(particle):
     )[0]
     return trajectory.flatten()
 
-# Prior.
+# prior
 prior_bounds = np.array([[0.0, 0.2], [0.1, 0.3], [0.4, 0.6]])
 
 # load saved obs data
