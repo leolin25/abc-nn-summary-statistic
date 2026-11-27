@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import numba as nb
 
 def random_choice(w: np.ndarray):
     """
@@ -13,6 +14,7 @@ def random_choice(w: np.ndarray):
     """
     return np.searchsorted(np.cumsum(w), np.random.random())
 
+@nb.njit
 def sample_prior(prior_bounds: np.ndarray) -> np.ndarray: 
     """
     Sample from the prior distribution 
@@ -29,6 +31,7 @@ def sample_prior(prior_bounds: np.ndarray) -> np.ndarray:
 
     return theta
 
+@nb.njit
 def gaussian_proposal(particles: np.ndarray, weights:np.ndarray, chol:np.ndarray, prior_bounds: np.ndarray) -> np.ndarray:
     """
     Randomly pick a particle and perturb it by a Gaussian
