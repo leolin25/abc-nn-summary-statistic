@@ -799,10 +799,10 @@ def abcsmc_forward(
                 simsummary = _summarize(path)
                 t_nn += time.perf_counter() - t0 # del
 
-                t0 = time.perf_counter
+                t0 = time.perf_counter()
                 # Accept / reject step.
                 distances[i] = distance(obssummaries[t], simsummary)
-                t_dist += time.perf_counter() - t0
+                t_dist += time.perf_counter() - t0 # del
                 if distances[i] <= abc_thresholds[t]:
                     # Store the particle.
                     abc_particles[t, i] = particle
