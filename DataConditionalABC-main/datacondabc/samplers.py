@@ -738,6 +738,14 @@ def abcsmc_forward(
         )
         net.eval()
         net = net.to("cpu")
+
+        # test code
+        torch.set_num_threads(1)
+        with torch.no_grad():
+            dummy = torch.zeros(1, d, obs_len)
+            for _ in range(50):
+                _ = net(dummy)
+
         best_model_paths.append(ckpt_path)
         stop_learning = True
     else:
