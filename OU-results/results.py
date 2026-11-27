@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 # change run date between experiment folders
-RUN_DATE = "21-11-26"
+RUN_DATE = "27-11-26"
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / RUN_DATE
 

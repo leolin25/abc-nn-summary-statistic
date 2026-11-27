@@ -53,7 +53,7 @@ results = abcsmc_forward(
     q=75, # use percentile instead of quartile
     max_sims=1e+7,
     amortized=True
-    #ckpt_path=str(Path(__file__).resolve().parent / "models" / "best-model-pretrained-v1.ckpt")
+    ckpt_path=str(Path(__file__).resolve().parent / "models" / "best-model-pretrained-v2.ckpt")
 )
 
 # unpack results tuple
