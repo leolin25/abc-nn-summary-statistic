@@ -738,14 +738,6 @@ def abcsmc_forward(
         )
         net.eval()
         net = net.to("cpu")
-
-        # test code
-        torch.set_num_threads(1)
-        with torch.no_grad():
-            dummy = torch.zeros(1, d, obs_len)
-            for _ in range(50):
-                _ = net(dummy)
-
         best_model_paths.append(ckpt_path)
         stop_learning = True
     else:
@@ -787,21 +779,30 @@ def abcsmc_forward(
         total_sim = 0
         round_start = time.time()
         distances = np.zeros(npart)
+
+        # test time counts
+        t_sim = t_nn = t_dist = 0.0 # del
         for i in tqdm(range(npart)):
             # Accept/reject.
             while True:
+                t0 = time.perf_counter() # del
                 # Sample.
                 particle = proposal()
                 path = simulator(particle)
+                t_sim += time.perf_counter() - t0 # del
                 if np.any(np.isnan(path)) or np.any(path >= 10e7):
                     continue
                 total_sim += 1
 
+                t0 = time.perf_counter() # del
                 # Summarize.
                 simsummary = _summarize(path)
+                t_nn += time.perf_counter() - t0 # del
 
+                t0 = time.perf_counter
                 # Accept / reject step.
                 distances[i] = distance(obssummaries[t], simsummary)
+                t_dist += time.perf_counter() - t0
                 if distances[i] <= abc_thresholds[t]:
                     # Store the particle.
                     abc_particles[t, i] = particle
