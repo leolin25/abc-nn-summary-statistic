@@ -832,6 +832,7 @@ def abcsmc_forward(
 
         # Total round time.
         abcround_time[t] = time.time() - round_start
+        print(f"Round {t+1} | sim={t_sim:.2f}s | nn={t_nn:.2f}s | dist={t_dist:.2f}s")
 
         cum_total_sim[t] = cum_total_sim[t-1] + total_sim
 
