@@ -781,28 +781,22 @@ def abcsmc_forward(
         distances = np.zeros(npart)
 
         # test time counts
-        t_sim = t_nn = t_dist = 0.0 # del
         for i in tqdm(range(npart)):
             # Accept/reject.
             while True:
-                t0 = time.perf_counter() # del
                 # Sample.
                 particle = proposal()
                 path = simulator(particle)
-                t_sim += time.perf_counter() - t0 # del
                 if np.any(np.isnan(path)) or np.any(path >= 10e7):
                     continue
                 total_sim += 1
 
-                t0 = time.perf_counter() # del
                 # Summarize.
                 simsummary = _summarize(path)
-                t_nn += time.perf_counter() - t0 # del
 
                 t0 = time.perf_counter()
                 # Accept / reject step.
                 distances[i] = distance(obssummaries[t], simsummary)
-                t_dist += time.perf_counter() - t0 # del
                 if distances[i] <= abc_thresholds[t]:
                     # Store the particle.
                     abc_particles[t, i] = particle
@@ -832,7 +826,6 @@ def abcsmc_forward(
 
         # Total round time.
         abcround_time[t] = time.time() - round_start
-        print(f"Round {t+1} | sim={t_sim:.2f}s | nn={t_nn:.2f}s | dist={t_dist:.2f}s")
 
         cum_total_sim[t] = cum_total_sim[t-1] + total_sim
 
